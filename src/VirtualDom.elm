@@ -19,7 +19,6 @@ that expose more helper functions for HTML or SVG.
 
 -}
 
-import Color
 import Json.Decode as Json
 import Graphics.Element (Element)
 import Native.VirtualDom
