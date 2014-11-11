@@ -35,34 +35,33 @@ Elm.Native.VirtualDom.make = function(elm) {
         return object;
     }
 
-    function node(name, attributes, contents) {
-        var attrs = listToObject(attributes);
+    function node(name, propertyList, contents) {
+        var props = listToObject(propertyList);
 
         var key, namespace;
         // support keys
-        if ("key" in attrs) {
-            key = attrs.key;
-            attrs.key = undefined;
+        if (props.key !== undefined) {
+            key = props.key;
+            props.key = undefined;
         }
 
         // support namespace
-        if ("namespace" in attrs) {
-            namespace = attrs.namespace;
-            attrs.namespace = undefined;
+        if (props.namespace !== undefined) {
+            namespace = props.namespace;
+            props.namespace = undefined;
         }
 
         // ensure that setting text of an input does not move the cursor
         var useSoftSet =
             name === 'input'
-            && 'value' in attrs
-            && attrs.value !== undefined
-            && !isHook(attrs.value);
+            && props.value !== undefined
+            && !isHook(props.value);
 
         if (useSoftSet) {
-            attrs.value = SoftSetHook(attrs.value);
+            props.value = SoftSetHook(props.value);
         }
 
-        return new VNode(name, attrs, List.toArray(contents), key, namespace);
+        return new VNode(name, props, List.toArray(contents), key, namespace);
     }
 
     function property(key, value) {
