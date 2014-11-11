@@ -66,15 +66,11 @@ Elm.Native.Html.make = function(elm) {
         return new VNode(name, attrs, List.toArray(contents), key, namespace);
     }
 
-    function pair(key, value) {
+    function property(key, value) {
         return {
             key: key,
             value: value
         };
-    }
-
-    function style(properties) {
-        return pair('style', listToObject(properties));
     }
 
     function on(name, getSomething, createMessage) {
@@ -84,7 +80,7 @@ Elm.Native.Html.make = function(elm) {
                 createMessage(value._0)();
             }
         }
-        return pair(name, DataSetHook(eventHandler));
+        return property(name, DataSetHook(eventHandler));
     }
 
     function DataSetHook(value) {
@@ -258,10 +254,9 @@ Elm.Native.Html.make = function(elm) {
     return Elm.Native.Html.values = {
         node: F3(node),
         text: text,
-        style: style,
         on: F3(on),
 
-        pair: F2(pair),
+        property: F2(property),
 
         lazyRef : F2(lazyRef ),
         lazyRef2: F3(lazyRef2),
