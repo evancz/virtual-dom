@@ -8,23 +8,22 @@ var DataSet = require("data-set");
 var Delegator = require("dom-delegator");
 var isHook = require("vtree/is-vhook");
 
-Elm.Native.Html = {};
-Elm.Native.Html.make = function(elm) {
+Elm.Native.VirtualDom = {};
+Elm.Native.VirtualDom.make = function(elm) {
     elm.Native = elm.Native || {};
-    elm.Native.Html = elm.Native.Html || {};
-    if (elm.Native.Html.values) return elm.Native.Html.values;
-    if ('values' in Elm.Native.Html)
-        return elm.Native.Html.values = Elm.Native.Html.values;
+    elm.Native.VirtualDom = elm.Native.VirtualDom || {};
+    if (elm.Native.VirtualDom.values) {
+        return elm.Native.VirtualDom.values;
+    }
 
     // This manages event listeners. Somehow...
     var delegator = Delegator();
 
     var RenderUtils = ElmRuntime.use(ElmRuntime.Render.Utils);
     var newElement = Elm.Graphics.Element.make(elm).newElement;
-    var Utils = Elm.Native.Utils.make(elm);
+    var Json = Elm.Native.Json.make(elm);
     var List = Elm.Native.List.make(elm);
-    var Maybe = Elm.Maybe.make(elm);
-    var eq = Elm.Native.Utils.make(elm).eq;
+    var Utils = Elm.Native.Utils.make(elm);
 
     function listToObject(list) {
         var object = {};
@@ -73,10 +72,10 @@ Elm.Native.Html.make = function(elm) {
         };
     }
 
-    function on(name, getSomething, createMessage) {
+    function on(name, decoder, createMessage) {
         function eventHandler(event) {
-            var value = getSomething(event);
-            if (value.ctor === 'Just') {
+            var value = A2(Json.decode, decoder, event);
+            if (value.ctor === 'Ok') {
                 createMessage(value._0)();
             }
         }
@@ -224,7 +223,7 @@ Elm.Native.Html.make = function(elm) {
         var pargs = previous.args;
 
         for (var i = cargs.length; i--; ) {
-            if (eq(cargs[i], pargs[i])) {
+            if (Utils.eq(cargs[i], pargs[i])) {
                 return true;
             }
         }
@@ -251,7 +250,7 @@ Elm.Native.Html.make = function(elm) {
         return createElement(this.vnode);
     }
 
-    return Elm.Native.Html.values = {
+    return Elm.Native.VirtualDom.values = {
         node: F3(node),
         text: text,
         on: F3(on),
