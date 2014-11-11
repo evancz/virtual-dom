@@ -6,6 +6,7 @@ var patch = require('virtual-dom/patch');
 var createElement = require('virtual-dom/create-element');
 var DataSet = require("data-set");
 var Delegator = require("dom-delegator");
+var isHook = require("vtree/is-vhook");
 
 Elm.Native.Html = {};
 Elm.Native.Html.make = function(elm) {
@@ -16,7 +17,7 @@ Elm.Native.Html.make = function(elm) {
         return elm.Native.Html.values = Elm.Native.Html.values;
 
     // This manages event listeners. Somehow...
-    Delegator();
+    var delegator = Delegator();
 
     var RenderUtils = ElmRuntime.use(ElmRuntime.Render.Utils);
     var newElement = Elm.Graphics.Element.make(elm).newElement;
@@ -25,114 +26,65 @@ Elm.Native.Html.make = function(elm) {
     var Maybe = Elm.Maybe.make(elm);
     var eq = Elm.Native.Utils.make(elm).eq;
 
-    function node(name, attributes, properties, contents) {
-        return eventNode(name, attributes, properties, List.Nil, contents);
+    function listToObject(list) {
+        var object = {};
+        while (list.ctor !== '[]') {
+            var entry = list._0;
+            object[entry.key] = entry.value;
+            list = list._1;
+        }
+        return object;
     }
 
-    function eventNode(name, attributes, properties, handlers, contents) {
-        var attrs = {};
-        while (attributes.ctor !== '[]') {
-            var attribute = attributes._0;
-            attrs[attribute.key] = attribute.value;
-            attributes = attributes._1;
+    function node(name, attributes, contents) {
+        var attrs = listToObject(attributes);
+
+        var key, namespace;
+        // support keys
+        if ("key" in attrs) {
+            key = attrs.key;
+            attrs.key = undefined;
         }
-        var props = {};
-        while (properties.ctor !== '[]') {
-            var property = properties._0;
-            props[property.key] = property.value;
-            properties = properties._1;
+
+        // support namespace
+        if ("namespace" in attrs) {
+            namespace = attrs.namespace;
+            attrs.namespace = undefined;
         }
-        attrs.style = props;
-        while (handlers.ctor !== '[]') {
-            var handler = handlers._0;
-            attrs[handler.eventName] = DataSetHook(handler.eventHandler);
-            handlers = handlers._1;
+
+        // ensure that setting text of an input does not move the cursor
+        var useSoftSet =
+            name === 'input'
+            && 'value' in attrs
+            && attrs.value !== undefined
+            && !isHook(attrs.value);
+
+        if (useSoftSet) {
+            attrs.value = SoftSetHook(attrs.value);
         }
-        return new VNode(name, attrs, List.toArray(contents));
+
+        return new VNode(name, attrs, List.toArray(contents), key, namespace);
     }
 
-    function pair(key,value) {
+    function pair(key, value) {
         return {
             key: key,
             value: value
         };
     }
 
-    function on(name, coerce) {
-        function createListener(handle, convert) {
-            function eventHandler(event) {
-                var value = coerce(event);
-                if (value.ctor === 'Just') {
-                    elm.notify(handle.id, convert(value._0));
-                }
-            }
-            return {
-                eventName: name,
-                eventHandler: eventHandler
-            };                
-        }
-        return F2(createListener);
+    function style(properties) {
+        return pair('style', listToObject(properties));
     }
 
-    function filterMap(f, getter) {
-        return function(event) {
-            var maybeValue = getter(event);
-            return maybeValue.ctor === 'Nothing' ? maybeValue : f(maybeValue._0);
-        };
-    }
-    function getMouseEvent(event) {
-        return !('button' in event) ?
-            Maybe.Nothing :
-            Maybe.Just({
-                _: {},
-                button: event.button,
-                altKey: event.altKey,
-                ctrlKey: event.ctrlKey,
-                metaKey: event.metaKey,
-                shiftKey: event.shiftKey
-            });
-    }
-    function getKeyboardEvent(event) {
-        return !('keyCode' in event) ?
-            Maybe.Nothing :
-            Maybe.Just({
-                _: {},
-                keyCode: event.keyCode,
-                altKey: event.altKey,
-                ctrlKey: event.ctrlKey,
-                metaKey: event.metaKey,
-                shiftKey: event.shiftKey
-            });
-    }
-    function getChecked(event) {
-        return 'checked' in event.target ?
-            Maybe.Just(event.target.checked) :
-            Maybe.Nothing;
-    }
-    function getValue(event) {
-        var node = event.target;
-        return 'value' in node ?
-            Maybe.Just(event.target.value) :
-            Maybe.Nothing;
-    }
-    function getValueAndSelection(event) {
-        var node = event.target;
-        return !('selectionStart' in node) ?
-            Maybe.Nothing :
-            Maybe.Just({
-                _: {},
-                value: node.value,
-                selection: {
-                    start: node.selectionStart,
-                    end: node.selectionEnd,
-                    direction: {
-                        ctor: node.selectionDirection === 'forward' ? 'Forward' : 'Backward'
-                    }
-                }
-            });
-    }
-    function getAnything(event) {
-        return Maybe.Just(Utils._Tuple0);
+    function on(name, getSomething, createMessage) {
+        function eventHandler(event) {
+            var value = getSomething(event);
+            if (value.ctor === 'Just') {
+                createMessage(value._0)();
+            }
+        }
+        return pair(name, DataSetHook(eventHandler));
     }
 
     function DataSetHook(value) {
@@ -146,6 +98,21 @@ Elm.Native.Html.make = function(elm) {
     DataSetHook.prototype.hook = function (node, propertyName) {
         var ds = DataSet(node);
         ds[propertyName] = this.value;
+    };
+
+
+    function SoftSetHook(value) {
+      if (!(this instanceof SoftSetHook)) {
+        return new SoftSetHook(value);
+      }
+
+      this.value = value;
+    }
+
+    SoftSetHook.prototype.hook = function (node, propertyName) {
+      if (node[propertyName] !== this.value) {
+        node[propertyName] = this.value;
+      }
     };
 
     function text(string) {
@@ -289,20 +256,12 @@ Elm.Native.Html.make = function(elm) {
     }
 
     return Elm.Native.Html.values = {
-        node: F4(node),
-        eventNode: F5(eventNode),
+        node: F3(node),
         text: text,
-        on: F2(on),
+        style: style,
+        on: F3(on),
 
         pair: F2(pair),
-
-        getMouseEvent: getMouseEvent,
-        getKeyboardEvent: getKeyboardEvent,
-        getChecked: getChecked,
-        getValue: getValue,
-        getValueAndSelection: getValueAndSelection,
-        getAnything: getAnything,
-        filterMap: F2(filterMap),
 
         lazyRef : F2(lazyRef ),
         lazyRef2: F3(lazyRef2),
