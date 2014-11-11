@@ -21,7 +21,7 @@ import Graphics.Element (Element)
 import Native.VirtualDom
 import Signal
 
-type Html = Html
+type Node = Node
 
 {-| Create a DOM node with a tag name, a list of HTML properties that can
 include styles and event listeners, a list of CSS properties like `color`, and
@@ -29,17 +29,17 @@ a list of child nodes.
 
     import Json.Encode as Json
 
-    hello : Html
+    hello : Node
     hello =
         node "div" [] [ text "Hello!" ]
 
-    greeting : Html
+    greeting : Node
     greeting =
         node "div"
             [ property "id" (Json.string "greeting") ]
             [ text "Hello!" ]
 -}
-node : String -> [Property] -> [Html] -> Html
+node : String -> [Property] -> [Node] -> Node
 node = Native.VirtualDom.node
 
 
@@ -48,15 +48,15 @@ exactly as you specify.
 
     text "Hello World!"
 -}
-text : String -> Html
+text : String -> Node
 text = Native.VirtualDom.text
 
 
-{-| Embed an `Html` value in Elm's rendering system. Like any other `Element`,
+{-| Embed an `Node` value in Elm's rendering system. Like any other `Element`,
 this requires a known width and height, so it is not yet clear if this can be
 made more convenient in the future.
 -}
-toElement : Int -> Int -> Html -> Element
+toElement : Int -> Int -> Node -> Element
 toElement = Native.VirtualDom.toElement
 
 
@@ -77,21 +77,21 @@ on = Native.VirtualDom.on
 
 -- OPTIMIZATION
 
-lazy : (a -> Html) -> a -> Html
+lazy : (a -> Node) -> a -> Node
 lazy = Native.VirtualDom.lazyRef
 
-lazy2 : (a -> b -> Html) -> a -> b -> Html
+lazy2 : (a -> b -> Node) -> a -> b -> Node
 lazy2 = Native.VirtualDom.lazyRef2
 
-lazy3 : (a -> b -> c -> Html) -> a -> b -> c -> Html
+lazy3 : (a -> b -> c -> Node) -> a -> b -> c -> Node
 lazy3 = Native.VirtualDom.lazyRef3
 
 
-lazy' : (a -> Html) -> a -> Html
+lazy' : (a -> Node) -> a -> Node
 lazy' = Native.VirtualDom.lazyStruct
 
-lazy2' : (a -> b -> Html) -> a -> b -> Html
+lazy2' : (a -> b -> Node) -> a -> b -> Node
 lazy2' = Native.VirtualDom.lazyStruct2
 
-lazy3' : (a -> b -> c -> Html) -> a -> b -> c -> Html
+lazy3' : (a -> b -> c -> Node) -> a -> b -> c -> Node
 lazy3' = Native.VirtualDom.lazyStruct3
