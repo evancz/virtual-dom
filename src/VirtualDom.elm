@@ -1,15 +1,6 @@
-module Html where
-{-| This module gives you *raw* bindings to HTML. There are no special tricks
-here, just the bare essentials to use HTML.
-
-Use `Html.Tags`, `Html.Attributes`, and `Html.Events` for helper functions like
-`div` to make your code more type-safe and a bit nicer to read. If ever you need
-to go outside those functions though, this core `Html` module has everything you
-need.
-
-In future releases, we plan to break out this module and the core diffing
-algorithm so that anyone can build on top of it with a minimal set of
-dependencies.
+module VirtualDom where
+{-| API to the core diffing algorithm. Can serve as a foundation for libraries
+that expose more helper functions for HTML or SVG.
 
 # Create
 @docs text, node
@@ -31,7 +22,7 @@ dependencies.
 import Color
 import Json.Decode as Json
 import Graphics.Element (Element)
-import Native.Html
+import Native.VirtualDom
 import Signal
 
 type Html = Html
@@ -47,7 +38,7 @@ a list of child nodes.
           [ text "Hello!" ]
 -}
 node : String -> [Attribute] -> [Html] -> Html
-node = Native.Html.node
+node = Native.VirtualDom.node
 
 {-| Just put plain text in the DOM. It will escape the string so that it appears
 exactly as you specify.
@@ -55,14 +46,14 @@ exactly as you specify.
       text "Hello World!"
 -}
 text : String -> Html
-text = Native.Html.text
+text = Native.VirtualDom.text
 
 {-| Embed an `Html` value in Elm's rendering system. Like any other `Element`,
 this requires a known width and height, so it is not yet clear if this can be
 made more convenient in the future.
 -}
 toElement : Int -> Int -> Html -> Element
-toElement = Native.Html.toElement
+toElement = Native.VirtualDom.toElement
 
 
 -- ATTRIBUTES
@@ -86,7 +77,7 @@ and CSS properties must be set using the JavaScript version of their name, so
 `class` becomes `className`, `float` becomes `cssFloat`, etc.
 -}
 attr : String -> String -> Attribute
-attr = Native.Html.pair
+attr = Native.VirtualDom.pair
 
 {-| Some HTML attributes are not associated with a value, they are either there
 or not. The `toggle` function lets create this kind of attribute.
@@ -101,7 +92,7 @@ See `Html.Attributes` for helper functions like
 `(autofocus : Bool -> Attribute)` and `(readonly : Bool -> Attribute)`.
 -}
 toggle : String -> Bool -> Attribute
-toggle = Native.Html.pair
+toggle = Native.VirtualDom.pair
 
 
 {-| A special attribute that uniquely identifies a node during the diffing
@@ -110,7 +101,7 @@ keys ensures that you do not end up doing misaligned diffs on the following 15
 items.
 -}
 key : String -> Attribute
-key k = Native.Html.pair "key" k
+key k = Native.VirtualDom.pair "key" k
 
 
 -- STYLES
@@ -133,15 +124,37 @@ suggest that this should primarily be specified in CSS files. So the general
 recommendation is to use this function lightly.
 -}
 style : [CssProperty] -> Attribute
-style = Native.Html.style
+style = Native.VirtualDom.style
 
 
 {-| Create a CSS property. -}
 prop : String -> String -> CssProperty
-prop = Native.Html.pair
+prop = Native.VirtualDom.pair
 
 
 -- EVENTS
 
 on : String -> Json.Decoder a -> (a -> Signal.Message) -> Attribute
-on = Native.Html.on
+on = Native.VirtualDom.on
+
+
+-- OPTIMIZATION
+
+lazy : (a -> Html) -> a -> Html
+lazy = Native.VirtualDom.lazyRef
+
+lazy2 : (a -> b -> Html) -> a -> b -> Html
+lazy2 = Native.VirtualDom.lazyRef2
+
+lazy3 : (a -> b -> c -> Html) -> a -> b -> c -> Html
+lazy3 = Native.VirtualDom.lazyRef3
+
+
+lazy' : (a -> Html) -> a -> Html
+lazy' = Native.VirtualDom.lazyStruct
+
+lazy2' : (a -> b -> Html) -> a -> b -> Html
+lazy2' = Native.VirtualDom.lazyStruct2
+
+lazy3' : (a -> b -> c -> Html) -> a -> b -> c -> Html
+lazy3' = Native.VirtualDom.lazyStruct3

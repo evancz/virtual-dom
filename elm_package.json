@@ -1,18 +1,13 @@
 {
     "version": "1.0.0",
-    "summary": "Fast HTML, rendered with virtual DOM diffing",
-    "repository": "https://github.com/evancz/elm-html.git",
+    "summary": "Core virtual DOM implementation, basis for HTML and SVG libraries",
+    "repository": "https://github.com/evancz/virtual-dom.git",
     "license": "BSD3",
     "source-directories": [
         "src"
     ],
     "exposed-modules": [
-        "Html",
-        "Html.Attributes",
-        "Html.Events",
-        "Html.Tags",
-        "Html.Optimize.RefEq",
-        "Html.Optimize.StructEq"
+        "VirtualDom"
     ],
     "dependencies": {
         "elm-lang/core": "1.0.0"
