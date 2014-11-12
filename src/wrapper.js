@@ -1,9 +1,9 @@
 
 var VNode = require('vtree/vnode');
 var VText = require('vtree/vtext');
-var diff = require('virtual-dom/diff');
-var patch = require('virtual-dom/patch');
-var createElement = require('virtual-dom/create-element');
+var diff = require('vtree/diff');
+var patch = require('vdom/patch');
+var createElement = require('vdom/create-element');
 var DataSet = require("data-set");
 var Delegator = require("dom-delegator");
 var isHook = require("vtree/is-vhook");
