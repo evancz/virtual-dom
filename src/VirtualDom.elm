@@ -78,20 +78,10 @@ on = Native.VirtualDom.on
 -- OPTIMIZATION
 
 lazy : (a -> Node) -> a -> Node
-lazy = Native.VirtualDom.lazyRef
+lazy = Native.VirtualDom.lazy
 
 lazy2 : (a -> b -> Node) -> a -> b -> Node
-lazy2 = Native.VirtualDom.lazyRef2
+lazy2 = Native.VirtualDom.lazy2
 
 lazy3 : (a -> b -> c -> Node) -> a -> b -> c -> Node
-lazy3 = Native.VirtualDom.lazyRef3
-
-
-lazy' : (a -> Node) -> a -> Node
-lazy' = Native.VirtualDom.lazyStruct
-
-lazy2' : (a -> b -> Node) -> a -> b -> Node
-lazy2' = Native.VirtualDom.lazyStruct2
-
-lazy3' : (a -> b -> c -> Node) -> a -> b -> c -> Node
-lazy3' = Native.VirtualDom.lazyStruct3
+lazy3 = Native.VirtualDom.lazy3
