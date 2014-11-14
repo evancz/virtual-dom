@@ -1810,45 +1810,24 @@ Elm.Native.VirtualDom.make = function(elm) {
         function thunk() {
             return fn(a);
         }
-        return new Thunk('ref', fn, [a], thunk, shouldUpdate_refEq);
+        return new Thunk('ref', fn, [a], thunk);
     }
 
     function lazyRef2(fn, a, b) {
         function thunk() {
             return A2(fn, a, b);
         }
-        return new Thunk('ref', fn, [a,b], thunk, shouldUpdate_refEq);
+        return new Thunk('ref', fn, [a,b], thunk);
     }
 
     function lazyRef3(fn, a, b, c) {
         function thunk() {
             return A3(fn, a, b, c);
         }
-        return new Thunk('ref', fn, [a,b,c], thunk, shouldUpdate_refEq);
+        return new Thunk('ref', fn, [a,b,c], thunk);
     }
 
-    function lazyStruct(fn, a) {
-        function thunk() {
-            return fn(a);
-        }
-        return new Thunk('struct', fn, [a], thunk, shouldUpdate_structEq);
-    }
-
-    function lazyStruct2(fn, a, b) {
-        function thunk() {
-            return A2(fn, a, b);
-        }
-        return new Thunk('struct', fn, [a,b], thunk, shouldUpdate_structEq);
-    }
-
-    function lazyStruct3(fn, a, b, c) {
-        function thunk() {
-            return A3(fn, a, b, c);
-        }
-        return new Thunk('struct', fn, [a,b,c], thunk, shouldUpdate_structEq);
-    }
-
-    function Thunk(kind, fn, args, thunk, shouldUpdate) {
+    function Thunk(kind, fn, args, thunk) {
         this.fn = fn;
         this.args = args;
         this.vnode = null;
@@ -1856,14 +1835,13 @@ Elm.Native.VirtualDom.make = function(elm) {
         this.thunk = thunk;
 
         this.kind = kind;
-        this.shouldUpdate = shouldUpdate;
     }
 
     Thunk.prototype.type = "immutable-thunk";
     Thunk.prototype.update = updateThunk;
     Thunk.prototype.init = initThunk;
 
-    function shouldUpdate_refEq(current, previous) {
+    function shouldUpdate(current, previous) {
         if (current.kind !== previous.kind || current.fn !== previous.fn) {
             return true;
         }
@@ -1881,26 +1859,8 @@ Elm.Native.VirtualDom.make = function(elm) {
         return false;
     }
 
-    function shouldUpdate_structEq(current, previous) {
-        if (current.kind !== previous.kind || current.fn !== previous.fn) {
-            return true;
-        }
-
-        // if it's the same function, we know the number of args must match
-        var cargs = current.args;
-        var pargs = previous.args;
-
-        for (var i = cargs.length; i--; ) {
-            if (Utils.eq(cargs[i], pargs[i])) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     function updateThunk(previous, domNode) {
-        if (!this.shouldUpdate(this, previous)) {
+        if (!shouldUpdate(this, previous)) {
             this.vnode = previous.vnode;
             return;
         }
@@ -1925,12 +1885,10 @@ Elm.Native.VirtualDom.make = function(elm) {
 
         property: F2(property),
 
-        lazyRef : F2(lazyRef ),
-        lazyRef2: F3(lazyRef2),
-        lazyRef3: F4(lazyRef3),
-        lazyStruct : F2(lazyStruct ),
-        lazyStruct2: F3(lazyStruct2),
-        lazyStruct3: F4(lazyStruct3),
+        lazy: F2(lazy),
+        lazy2: F3(lazy2),
+        lazy3: F4(lazy3),
+
         toElement: F3(toElement)
     };
 };
