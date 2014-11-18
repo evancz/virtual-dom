@@ -39,7 +39,7 @@ a list of child nodes.
             [ property "id" (Json.string "greeting") ]
             [ text "Hello!" ]
 -}
-node : String -> [Property] -> [Node] -> Node
+node : String -> List Property -> List Node -> Node
 node = Native.VirtualDom.node
 
 
@@ -64,7 +64,7 @@ toElement = Native.VirtualDom.toElement
 
 type Property = Property
 
-property : String -> Json.Json -> Property
+property : String -> Json.Value -> Property
 property =
     Native.VirtualDom.property
 
