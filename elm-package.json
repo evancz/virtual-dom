@@ -9,6 +9,7 @@
     "exposed-modules": [
         "VirtualDom"
     ],
+    "native-modules": true,
     "dependencies": {
         "elm-lang/core": "1.0.0"
     }
