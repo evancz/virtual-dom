@@ -1688,7 +1688,7 @@ Elm.Native.VirtualDom.make = function(elm) {
     // This manages event listeners. Somehow...
     var delegator = Delegator();
 
-    var RenderUtils = ElmRuntime.use(ElmRuntime.Render.Utils);
+    var createNode = Elm.Native.Graphics.Element.make(elm).createNode;
     var newElement = Elm.Graphics.Element.make(elm).newElement;
     var Json = Elm.Native.Json.make(elm);
     var List = Elm.Native.List.make(elm);
@@ -1793,7 +1793,7 @@ Elm.Native.VirtualDom.make = function(elm) {
     }
 
     function render(model) {
-        var element = RenderUtils.newElement('div');
+        var element = createNode('div');
         element.appendChild(createElement(model));
         return element;
     }
