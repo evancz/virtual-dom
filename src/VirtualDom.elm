@@ -5,8 +5,8 @@ that expose more helper functions for HTML or SVG.
 # Create
 @docs text, node
 
-# Embed
-@docs toElement
+# Conversions
+@docs toElement, fromElement
 
 # Declare Properties
 @docs property

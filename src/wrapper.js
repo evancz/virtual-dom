@@ -19,8 +19,8 @@ Elm.Native.VirtualDom.make = function(elm) {
     // This manages event listeners. Somehow...
     var delegator = Delegator();
 
-    var RenderUtils = ElmRuntime.use(ElmRuntime.Render.Utils);
-    var newElement = Elm.Graphics.Element.make(elm).newElement;
+    var NativeElement = Elm.Native.Graphics.Element.make(elm);
+    var Element = Elm.Graphics.Element.make(elm);
     var Json = Elm.Native.Json.make(elm);
     var List = Elm.Native.List.make(elm);
     var Utils = Elm.Native.Utils.make(elm);
@@ -113,8 +113,24 @@ Elm.Native.VirtualDom.make = function(elm) {
         return new VText(string);
     }
 
+    function fromElement(element) {
+        return {
+            type: "Widget",
+
+            element: element,
+
+            init: function () {
+                return NativeElement.render(element);
+            },
+
+            update: function (previous, node) {
+                return NativeElement.update(node, previous.element, element);
+            }
+        };
+    }
+
     function toElement(width, height, html) {
-        return A3(newElement, width, height,
+        return A3(Element.newElement, width, height,
                   { ctor: 'Custom'
                   , type: 'evancz/elm-html'
                   , render: render
@@ -124,7 +140,7 @@ Elm.Native.VirtualDom.make = function(elm) {
     }
 
     function render(model) {
-        var element = RenderUtils.newElement('div');
+        var element = NativeElement.createNode('div');
         element.appendChild(createElement(model));
         return element;
     }
@@ -220,6 +236,7 @@ Elm.Native.VirtualDom.make = function(elm) {
         lazy2: F3(lazy2),
         lazy3: F4(lazy3),
 
-        toElement: F3(toElement)
+        toElement: F3(toElement),
+        fromElement: fromElement
     };
 };
