@@ -60,6 +60,12 @@ toElement : Int -> Int -> Node -> Element
 toElement = Native.VirtualDom.toElement
 
 
+{-| Embed an `Element` as `Html`.
+-}
+fromElement : Element -> Node
+fromElement = Native.VirtualDom.fromElement
+
+
 -- PROPERTIES
 
 type Property = Property
