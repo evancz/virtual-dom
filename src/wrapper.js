@@ -73,7 +73,7 @@ Elm.Native.VirtualDom.make = function(elm) {
 
     function on(name, decoder, createMessage) {
         function eventHandler(event) {
-            var value = A2(Json.decode, decoder, event);
+            var value = A2(Json.runDecoderString, decoder, event);
             if (value.ctor === 'Ok') {
                 createMessage(value._0)();
             }
@@ -232,9 +232,9 @@ Elm.Native.VirtualDom.make = function(elm) {
 
         property: F2(property),
 
-        lazy: F2(lazy),
-        lazy2: F3(lazy2),
-        lazy3: F4(lazy3),
+        lazy: F2(lazyRef),
+        lazy2: F3(lazyRef2),
+        lazy3: F4(lazyRef3),
 
         toElement: F3(toElement),
         fromElement: fromElement
