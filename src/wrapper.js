@@ -183,6 +183,7 @@ Elm.Native.VirtualDom.make = function(elm) {
         this.thunk = thunk;
 
         this.kind = kind;
+        this.shouldUpdate = shouldUpdate;
     }
 
     Thunk.prototype.type = "immutable-thunk";
