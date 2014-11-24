@@ -1827,40 +1827,37 @@ Elm.Native.VirtualDom.make = function(elm) {
         function thunk() {
             return fn(a);
         }
-        return new Thunk('ref', fn, [a], thunk);
+        return new Thunk(fn, [a], thunk);
     }
 
     function lazyRef2(fn, a, b) {
         function thunk() {
             return A2(fn, a, b);
         }
-        return new Thunk('ref', fn, [a,b], thunk);
+        return new Thunk(fn, [a,b], thunk);
     }
 
     function lazyRef3(fn, a, b, c) {
         function thunk() {
             return A3(fn, a, b, c);
         }
-        return new Thunk('ref', fn, [a,b,c], thunk);
+        return new Thunk(fn, [a,b,c], thunk);
     }
 
-    function Thunk(kind, fn, args, thunk) {
+    function Thunk(fn, args, thunk) {
         this.fn = fn;
         this.args = args;
         this.vnode = null;
         this.key = undefined;
         this.thunk = thunk;
-
-        this.kind = kind;
-        this.shouldUpdate = shouldUpdate;
     }
 
-    Thunk.prototype.type = "immutable-thunk";
+    Thunk.prototype.type = "Thunk";
     Thunk.prototype.update = updateThunk;
     Thunk.prototype.init = initThunk;
 
     function shouldUpdate(current, previous) {
-        if (current.kind !== previous.kind || current.fn !== previous.fn) {
+        if (current.fn !== previous.fn) {
             return true;
         }
 
