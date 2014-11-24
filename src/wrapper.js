@@ -151,6 +151,7 @@ Elm.Native.VirtualDom.make = function(elm) {
         if (newNode !== node.firstChild) {
             node.replaceChild(newNode, node.firstChild)
         }
+        return node;
     }
 
     function lazyRef(fn, a) {
