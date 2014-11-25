@@ -73,7 +73,7 @@ Elm.Native.VirtualDom.make = function(elm) {
 
     function on(name, decoder, createMessage) {
         function eventHandler(event) {
-            var value = A2(Json.runDecoderString, decoder, event);
+            var value = A2(Json.runDecoderValue, decoder, event);
             if (value.ctor === 'Ok') {
                 createMessage(value._0)();
             }
