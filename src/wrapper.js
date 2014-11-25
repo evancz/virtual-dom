@@ -185,7 +185,7 @@ Elm.Native.VirtualDom.make = function(elm) {
 
     Thunk.prototype.type = "Thunk";
     Thunk.prototype.update = updateThunk;
-    Thunk.prototype.init = initThunk;
+    Thunk.prototype.render = renderThunk;
 
     function shouldUpdate(current, previous) {
         if (current.fn !== previous.fn) {
@@ -219,9 +219,8 @@ Elm.Native.VirtualDom.make = function(elm) {
         patch(domNode, patches);
     }
 
-    function initThunk() {
-        this.vnode = this.thunk();
-        return createElement(this.vnode);
+    function renderThunk() {
+        return this.thunk();
     }
 
     return Elm.Native.VirtualDom.values = {
