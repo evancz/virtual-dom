@@ -1815,12 +1815,17 @@ Elm.Native.VirtualDom.make = function(elm) {
     }
 
     function update(node, oldModel, newModel) {
-        var patches = diff(oldModel, newModel);
-        var newNode = patch(node.firstChild, patches)
-        if (newNode !== node.firstChild) {
-            node.replaceChild(newNode, node.firstChild)
-        }
+        updateAndReplace(node.firstChild, oldModel, newModel);
         return node;
+    }
+
+    function updateAndReplace(node, oldModel, newModel) {
+        var patches = diff(oldModel, newModel);
+        var newNode = patch(node, patches);
+        if (newNode !== node) {
+            node.parentNode.replaceChild(newNode, node);
+        }
+        return newNode;
     }
 
     function lazyRef(fn, a) {
@@ -1904,7 +1909,10 @@ Elm.Native.VirtualDom.make = function(elm) {
         lazy3: F4(lazyRef3),
 
         toElement: F3(toElement),
-        fromElement: fromElement
+        fromElement: fromElement,
+
+        render: createElement,
+        updateAndReplace: updateAndReplace
     };
 };
 
