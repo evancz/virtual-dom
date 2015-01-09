@@ -25,18 +25,24 @@ Elm.Native.VirtualDom.make = function(elm) {
     var List = Elm.Native.List.make(elm);
     var Utils = Elm.Native.Utils.make(elm);
 
-    function listToObject(list) {
+    function listToProperties(list) {
         var object = {};
         while (list.ctor !== '[]') {
             var entry = list._0;
-            object[entry.key] = entry.value;
+            if (entry.key === 'attributes') {
+              object.attributes = object.attributes || {};
+              object.attributes[entry.value.attrKey] = entry.value.attrValue;
+            }
+            else {
+              object[entry.key] = entry.value;
+            }
             list = list._1;
         }
         return object;
     }
 
     function node(name, propertyList, contents) {
-        var props = listToObject(propertyList);
+        var props = listToProperties(propertyList);
 
         var key, namespace;
         // support keys
@@ -65,9 +71,22 @@ Elm.Native.VirtualDom.make = function(elm) {
     }
 
     function property(key, value) {
+        if (key == 'attributes') {
+          throw new Error("Cannot assign the attributes property directly");
+        }
         return {
             key: key,
             value: value
+        };
+    }
+
+    function attribute(key, value) {
+        return {
+            key: 'attributes',
+            value: {
+              attrKey: key,
+              attrValue: value
+            }
         };
     }
 
@@ -234,6 +253,7 @@ Elm.Native.VirtualDom.make = function(elm) {
         on: F3(on),
 
         property: F2(property),
+        attribute: F2(attribute),
 
         lazy: F2(lazyRef),
         lazy2: F3(lazyRef2),

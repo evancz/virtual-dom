@@ -74,6 +74,10 @@ property : String -> Json.Value -> Property
 property =
     Native.VirtualDom.property
 
+attribute : String -> String -> Property
+attribute =
+    Native.VirtualDom.attribute
+
 
 -- EVENTS
 
