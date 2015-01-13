@@ -25,11 +25,13 @@ Elm.Native.VirtualDom.make = function(elm) {
     var List = Elm.Native.List.make(elm);
     var Utils = Elm.Native.Utils.make(elm);
 
+    var ATTRIBUTE_KEY = 'UniqueNameThatOthersAreVeryUnlikelyToUse';
+
     function listToProperties(list) {
         var object = {};
         while (list.ctor !== '[]') {
             var entry = list._0;
-            if (entry.key === 'attributes') {
+            if (entry.key === ATTRIBUTE_KEY) {
               object.attributes = object.attributes || {};
               object.attributes[entry.value.attrKey] = entry.value.attrValue;
             }
@@ -71,9 +73,6 @@ Elm.Native.VirtualDom.make = function(elm) {
     }
 
     function property(key, value) {
-        if (key == 'attributes') {
-          throw new Error("Cannot assign the attributes property directly");
-        }
         return {
             key: key,
             value: value
@@ -82,10 +81,10 @@ Elm.Native.VirtualDom.make = function(elm) {
 
     function attribute(key, value) {
         return {
-            key: 'attributes',
+            key: ATTRIBUTE_KEY,
             value: {
-              attrKey: key,
-              attrValue: value
+                attrKey: key,
+                attrValue: value
             }
         };
     }
