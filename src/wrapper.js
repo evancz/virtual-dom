@@ -17,6 +17,7 @@ Elm.Native.VirtualDom.make = function(elm) {
     }
 
     // This manages event listeners. Somehow...
+    // Save a reference for use in on(...)
     var delegator = Delegator();
 
     var NativeElement = Elm.Native.Graphics.Element.make(elm);
@@ -90,6 +91,8 @@ Elm.Native.VirtualDom.make = function(elm) {
     }
 
     function on(name, decoder, createMessage) {
+        // Ensure we're listening for this type of event
+        delegator.listenTo(name);
         function eventHandler(event) {
             var value = A2(Json.runDecoderValue, decoder, event);
             if (value.ctor === 'Ok') {
