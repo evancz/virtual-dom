@@ -174,9 +174,6 @@ Elm.Native.VirtualDom.make = function(elm) {
     function updateAndReplace(node, oldModel, newModel) {
         var patches = diff(oldModel, newModel);
         var newNode = patch(node, patches);
-        if (newNode !== node) {
-            node.parentNode.replaceChild(newNode, node);
-        }
         return newNode;
     }
 
