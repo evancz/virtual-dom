@@ -96,7 +96,14 @@ Elm.Native.VirtualDom.make = function(elm) {
         function eventHandler(event) {
             var value = A2(Json.runDecoderValue, decoder, event);
             if (value.ctor === 'Ok') {
-                createMessage(value._0)();
+                var message = createMessage(value._0);
+                if (message.ctor !== "Nothing") {
+                    message._0();
+                }
+            }
+            else {
+                event.preventDefault();
+                event.stopPropagation();
             }
         }
         return property(name, DataSetHook(eventHandler));

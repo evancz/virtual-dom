@@ -81,7 +81,7 @@ attribute =
 
 -- EVENTS
 
-on : String -> Json.Decoder a -> (a -> Signal.Message) -> Property
+on : String -> Json.Decoder a -> (a -> Maybe Signal.Message) -> Property
 on = Native.VirtualDom.on
 
 
