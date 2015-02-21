@@ -1,4 +1,4 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 module.exports = createHash
 
 function createHash(elem) {
@@ -63,7 +63,7 @@ function Individual(key, value) {
     return value
 }
 
-}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],4:[function(require,module,exports){
 var hiddenStore = require('./hidden-store.js');
 
@@ -484,10 +484,10 @@ if (typeof document !== 'undefined') {
     module.exports = doccy;
 }
 
-}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"min-document":40}],11:[function(require,module,exports){
-module.exports=require(3)
-},{}],12:[function(require,module,exports){
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"min-document":41}],11:[function(require,module,exports){
+arguments[4][3][0].apply(exports,arguments)
+},{"dup":3}],12:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -513,10 +513,29 @@ if (typeof Object.create === 'function') {
 }
 
 },{}],13:[function(require,module,exports){
-module.exports=require(4)
+var hiddenStore = require('./hidden-store.js');
+
+module.exports = createStore;
+
+function createStore() {
+    var key = {};
+
+    return function (obj) {
+        if ((typeof obj !== 'object' || obj === null) &&
+            typeof obj !== 'function'
+        ) {
+            throw new Error('Weakmap-shim: Key must be object')
+        }
+
+        var store = obj.valueOf(key);
+        return store && store.identity === key ?
+            store : hiddenStore(obj, key);
+    };
+}
+
 },{"./hidden-store.js":14}],14:[function(require,module,exports){
-module.exports=require(5)
-},{}],15:[function(require,module,exports){
+arguments[4][5][0].apply(exports,arguments)
+},{"dup":5}],15:[function(require,module,exports){
 var inherits = require("inherits")
 
 var ALL_PROPS = [
@@ -618,6 +637,74 @@ function removeEvent(target, type, handler) {
 }
 
 },{"data-set":2}],17:[function(require,module,exports){
+(function (process){
+'use strict';
+
+var callable, byObserver;
+
+callable = function (fn) {
+	if (typeof fn !== 'function') throw new TypeError(fn + " is not a function");
+	return fn;
+};
+
+byObserver = function (Observer) {
+	var node = document.createTextNode(''), queue, i = 0;
+	new Observer(function () {
+		var data;
+		if (!queue) return;
+		data = queue;
+		queue = null;
+		if (typeof data === 'function') {
+			data();
+			return;
+		}
+		data.forEach(function (fn) { fn(); });
+	}).observe(node, { characterData: true });
+	return function (fn) {
+		callable(fn);
+		if (queue) {
+			if (typeof queue === 'function') queue = [queue, fn];
+			else queue.push(fn);
+			return;
+		}
+		queue = fn;
+		node.data = (i = ++i % 2);
+	};
+};
+
+module.exports = (function () {
+	// Node.js
+	if ((typeof process !== 'undefined') && process &&
+			(typeof process.nextTick === 'function')) {
+		return process.nextTick;
+	}
+
+	// MutationObserver=
+	if ((typeof document === 'object') && document) {
+		if (typeof MutationObserver === 'function') {
+			return byObserver(MutationObserver);
+		}
+		if (typeof WebKitMutationObserver === 'function') {
+			return byObserver(WebKitMutationObserver);
+		}
+	}
+
+	// W3C Draft
+	// http://dvcs.w3.org/hg/webperf/raw-file/tip/specs/setImmediate/Overview.html
+	if (typeof setImmediate === 'function') {
+		return function (cb) { setImmediate(callable(cb)); };
+	}
+
+	// Wide available standard
+	if (typeof setTimeout === 'function') {
+		return function (cb) { setTimeout(callable(cb), 0); };
+	}
+
+	return null;
+}());
+
+}).call(this,require('_process'))
+},{"_process":42}],18:[function(require,module,exports){
 var isObject = require("is-object")
 var isHook = require("vtree/is-vhook")
 
@@ -711,7 +798,7 @@ function getPrototype(value) {
     }
 }
 
-},{"is-object":21,"vtree/is-vhook":29}],18:[function(require,module,exports){
+},{"is-object":22,"vtree/is-vhook":30}],19:[function(require,module,exports){
 var document = require("global/document")
 
 var applyProperties = require("./apply-properties")
@@ -759,7 +846,7 @@ function createElement(vnode, opts) {
     return node
 }
 
-},{"./apply-properties":17,"global/document":20,"vtree/handle-thunk":27,"vtree/is-vnode":30,"vtree/is-vtext":31,"vtree/is-widget":32}],19:[function(require,module,exports){
+},{"./apply-properties":18,"global/document":21,"vtree/handle-thunk":28,"vtree/is-vnode":31,"vtree/is-vtext":32,"vtree/is-widget":33}],20:[function(require,module,exports){
 // Maps a virtual DOM tree onto a real DOM tree in an efficient manner.
 // We don't want to read all of the DOM nodes in the tree so we use
 // the in-order tree indexing to eliminate recursion down certain branches.
@@ -846,16 +933,16 @@ function ascending(a, b) {
     return a > b ? 1 : -1
 }
 
-},{}],20:[function(require,module,exports){
-module.exports=require(10)
-},{"min-document":40}],21:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
+arguments[4][10][0].apply(exports,arguments)
+},{"dup":10,"min-document":41}],22:[function(require,module,exports){
 module.exports = isObject
 
 function isObject(x) {
     return typeof x === "object" && x !== null
 }
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var nativeIsArray = Array.isArray
 var toString = Object.prototype.toString
 
@@ -865,7 +952,7 @@ function isArray(obj) {
     return toString.call(obj) === "[object Array]"
 }
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 var applyProperties = require("./apply-properties")
 
 var isWidget = require("vtree/is-widget")
@@ -1035,7 +1122,7 @@ function replaceRoot(oldRoot, newRoot) {
     return newRoot;
 }
 
-},{"./apply-properties":17,"./create-element":18,"./update-widget":25,"vtree/is-widget":32,"vtree/vpatch":37}],24:[function(require,module,exports){
+},{"./apply-properties":18,"./create-element":19,"./update-widget":26,"vtree/is-widget":33,"vtree/vpatch":38}],25:[function(require,module,exports){
 var document = require("global/document")
 var isArray = require("x-is-array")
 
@@ -1113,7 +1200,7 @@ function patchIndices(patches) {
     return indices
 }
 
-},{"./dom-index":19,"./patch-op":23,"global/document":20,"x-is-array":22}],25:[function(require,module,exports){
+},{"./dom-index":20,"./patch-op":24,"global/document":21,"x-is-array":23}],26:[function(require,module,exports){
 var isWidget = require("vtree/is-widget")
 
 module.exports = updateWidget
@@ -1130,7 +1217,7 @@ function updateWidget(a, b) {
     return false
 }
 
-},{"vtree/is-widget":32}],26:[function(require,module,exports){
+},{"vtree/is-widget":33}],27:[function(require,module,exports){
 var isArray = require("x-is-array")
 var isObject = require("is-object")
 
@@ -1476,7 +1563,7 @@ function appendPatch(apply, patch) {
     }
 }
 
-},{"./handle-thunk":27,"./is-thunk":28,"./is-vnode":30,"./is-vtext":31,"./is-widget":32,"./vpatch":37,"is-object":33,"x-is-array":34}],27:[function(require,module,exports){
+},{"./handle-thunk":28,"./is-thunk":29,"./is-vnode":31,"./is-vtext":32,"./is-widget":33,"./vpatch":38,"is-object":34,"x-is-array":35}],28:[function(require,module,exports){
 var isVNode = require("./is-vnode")
 var isVText = require("./is-vtext")
 var isWidget = require("./is-widget")
@@ -1518,14 +1605,14 @@ function renderThunk(thunk, previous) {
     return renderedThunk
 }
 
-},{"./is-thunk":28,"./is-vnode":30,"./is-vtext":31,"./is-widget":32}],28:[function(require,module,exports){
+},{"./is-thunk":29,"./is-vnode":31,"./is-vtext":32,"./is-widget":33}],29:[function(require,module,exports){
 module.exports = isThunk
 
 function isThunk(t) {
     return t && t.type === "Thunk"
 }
 
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 module.exports = isHook
 
 function isHook(hook) {
@@ -1533,7 +1620,7 @@ function isHook(hook) {
         !hook.hasOwnProperty("hook")
 }
 
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 var version = require("./version")
 
 module.exports = isVirtualNode
@@ -1542,7 +1629,7 @@ function isVirtualNode(x) {
     return x && x.type === "VirtualNode" && x.version === version
 }
 
-},{"./version":35}],31:[function(require,module,exports){
+},{"./version":36}],32:[function(require,module,exports){
 var version = require("./version")
 
 module.exports = isVirtualText
@@ -1551,21 +1638,21 @@ function isVirtualText(x) {
     return x && x.type === "VirtualText" && x.version === version
 }
 
-},{"./version":35}],32:[function(require,module,exports){
+},{"./version":36}],33:[function(require,module,exports){
 module.exports = isWidget
 
 function isWidget(w) {
     return w && w.type === "Widget"
 }
 
-},{}],33:[function(require,module,exports){
-module.exports=require(21)
 },{}],34:[function(require,module,exports){
-module.exports=require(22)
-},{}],35:[function(require,module,exports){
+arguments[4][22][0].apply(exports,arguments)
+},{"dup":22}],35:[function(require,module,exports){
+arguments[4][23][0].apply(exports,arguments)
+},{"dup":23}],36:[function(require,module,exports){
 module.exports = "1"
 
-},{}],36:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 var version = require("./version")
 var isVNode = require("./is-vnode")
 var isWidget = require("./is-widget")
@@ -1630,7 +1717,7 @@ function VirtualNode(tagName, properties, children, key, namespace) {
 VirtualNode.prototype.version = version
 VirtualNode.prototype.type = "VirtualNode"
 
-},{"./is-vhook":29,"./is-vnode":30,"./is-widget":32,"./version":35}],37:[function(require,module,exports){
+},{"./is-vhook":30,"./is-vnode":31,"./is-widget":33,"./version":36}],38:[function(require,module,exports){
 var version = require("./version")
 
 VirtualPatch.NONE = 0
@@ -1654,7 +1741,7 @@ function VirtualPatch(type, vNode, patch) {
 VirtualPatch.prototype.version = version
 VirtualPatch.prototype.type = "VirtualPatch"
 
-},{"./version":35}],38:[function(require,module,exports){
+},{"./version":36}],39:[function(require,module,exports){
 var version = require("./version")
 
 module.exports = VirtualText
@@ -1666,7 +1753,7 @@ function VirtualText(text) {
 VirtualText.prototype.version = version
 VirtualText.prototype.type = "VirtualText"
 
-},{"./version":35}],39:[function(require,module,exports){
+},{"./version":36}],40:[function(require,module,exports){
 
 var VNode = require('vtree/vnode');
 var VText = require('vtree/vtext');
@@ -1676,6 +1763,7 @@ var createElement = require('vdom/create-element');
 var DataSet = require("data-set");
 var Delegator = require("dom-delegator");
 var isHook = require("vtree/is-vhook");
+var nextTick = require("next-tick");
 
 Elm.Native.VirtualDom = {};
 Elm.Native.VirtualDom.make = function(elm) {
@@ -1688,7 +1776,6 @@ Elm.Native.VirtualDom.make = function(elm) {
     // This manages event listeners. Somehow...
     // Save a reference for use in on(...)
     var delegator = Delegator();
-
     var NativeElement = Elm.Native.Graphics.Element.make(elm);
     var Element = Elm.Graphics.Element.make(elm);
     var Json = Elm.Native.Json.make(elm);
@@ -1745,7 +1832,7 @@ Elm.Native.VirtualDom.make = function(elm) {
     function property(key, value) {
         return {
             key: key,
-            value: value
+            value: key == "className" ? new TransitionHook(value) : value
         };
     }
 
@@ -1797,6 +1884,19 @@ Elm.Native.VirtualDom.make = function(elm) {
       if (node[propertyName] !== this.value) {
         node[propertyName] = this.value;
       }
+    };
+
+    function TransitionHook(value) {
+      this.value = value;
+    }
+    TransitionHook.prototype.hook = function (node, propName) {
+      if (!node.childNodes.length) {
+        node.setAttribute('class', this.value + ' transition-entering');
+        nextTick(function() {
+          node.setAttribute('class', this.value + '');
+        }.bind(this));
+      }
+
     };
 
     function text(string) {
@@ -1935,6 +2035,66 @@ Elm.Native.VirtualDom.make = function(elm) {
     };
 };
 
-},{"data-set":2,"dom-delegator":8,"vdom/create-element":18,"vdom/patch":24,"vtree/diff":26,"vtree/is-vhook":29,"vtree/vnode":36,"vtree/vtext":38}],40:[function(require,module,exports){
+},{"data-set":2,"dom-delegator":8,"next-tick":17,"vdom/create-element":19,"vdom/patch":25,"vtree/diff":27,"vtree/is-vhook":30,"vtree/vnode":37,"vtree/vtext":39}],41:[function(require,module,exports){
 
-},{}]},{},[39]);
+},{}],42:[function(require,module,exports){
+// shim for using process in browser
+
+var process = module.exports = {};
+var queue = [];
+var draining = false;
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    draining = true;
+    var currentQueue;
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        var i = -1;
+        while (++i < len) {
+            currentQueue[i]();
+        }
+        len = queue.length;
+    }
+    draining = false;
+}
+process.nextTick = function (fun) {
+    queue.push(fun);
+    if (!draining) {
+        setTimeout(drainQueue, 0);
+    }
+};
+
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+// TODO(shtylman)
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+},{}]},{},[40]);
+;

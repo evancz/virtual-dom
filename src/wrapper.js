@@ -7,6 +7,7 @@ var createElement = require('vdom/create-element');
 var DataSet = require("data-set");
 var Delegator = require("dom-delegator");
 var isHook = require("vtree/is-vhook");
+var nextTick = require("next-tick");
 
 Elm.Native.VirtualDom = {};
 Elm.Native.VirtualDom.make = function(elm) {
@@ -19,7 +20,6 @@ Elm.Native.VirtualDom.make = function(elm) {
     // This manages event listeners. Somehow...
     // Save a reference for use in on(...)
     var delegator = Delegator();
-
     var NativeElement = Elm.Native.Graphics.Element.make(elm);
     var Element = Elm.Graphics.Element.make(elm);
     var Json = Elm.Native.Json.make(elm);
@@ -76,7 +76,7 @@ Elm.Native.VirtualDom.make = function(elm) {
     function property(key, value) {
         return {
             key: key,
-            value: value
+            value: key == "className" ? new TransitionHook(value) : value
         };
     }
 
@@ -128,6 +128,19 @@ Elm.Native.VirtualDom.make = function(elm) {
       if (node[propertyName] !== this.value) {
         node[propertyName] = this.value;
       }
+    };
+
+    function TransitionHook(value) {
+      this.value = value;
+    }
+    TransitionHook.prototype.hook = function (node, propName) {
+      if (!node.childNodes.length) {
+        node.setAttribute('class', this.value + ' transition-entering');
+        nextTick(function() {
+          node.setAttribute('class', this.value + '');
+        }.bind(this));
+      }
+
     };
 
     function text(string) {
