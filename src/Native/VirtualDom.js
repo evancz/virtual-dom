@@ -1691,8 +1691,8 @@ Elm.Native.VirtualDom.make = function(elm)
 	// Save a reference for use in on(...)
 	var delegator = Delegator();
 
-	var NativeElement = Elm.Native.Graphics.Element.make(elm);
-	var Element = Elm.Graphics.Element.make(elm);
+	var Element = Elm.Native.Graphics.Element.make(elm);
+	var Promise = Elm.Native.Promise.make(elm);
 	var Json = Elm.Native.Json.make(elm);
 	var List = Elm.Native.List.make(elm);
 	var Utils = Elm.Native.Utils.make(elm);
@@ -1780,7 +1780,8 @@ Elm.Native.VirtualDom.make = function(elm)
 			var value = A2(Json.runDecoderValue, decoder, event);
 			if (value.ctor === 'Ok')
 			{
-				createMessage(value._0)();
+				var promise = createMessage(value._0)._0;
+				Promise.runOne(promise);
 			}
 		}
 		return property(name, DataSetHook(eventHandler));
@@ -1833,11 +1834,11 @@ Elm.Native.VirtualDom.make = function(elm)
 			element: element,
 
 			init: function () {
-				return NativeElement.render(element);
+				return Element.render(element);
 			},
 
 			update: function (previous, node) {
-				return NativeElement.update(node, previous.element, element);
+				return Element.update(node, previous.element, element);
 			}
 		};
 	}
@@ -1855,7 +1856,7 @@ Elm.Native.VirtualDom.make = function(elm)
 
 	function render(model)
 	{
-		var element = NativeElement.createNode('div');
+		var element = Element.createNode('div');
 		element.appendChild(createElement(model));
 		return element;
 	}

@@ -16,10 +16,12 @@ that expose more helper functions for HTML or SVG.
 
 -}
 
-import Json.Decode as Json
-import Graphics.Element (Element)
+import Graphics.Element exposing (Element)
+import JavaScript.Decode as JS
+import Mailbox
 import Native.VirtualDom
-import Signal
+import Promise
+
 
 type Node = Node
 
@@ -27,7 +29,7 @@ type Node = Node
 include styles and event listeners, a list of CSS properties like `color`, and
 a list of child nodes.
 
-    import Json.Encode as Json
+    import JavaScript.Encode as JS
 
     hello : Node
     hello =
@@ -36,11 +38,12 @@ a list of child nodes.
     greeting : Node
     greeting =
         node "div"
-            [ property "id" (Json.string "greeting") ]
+            [ property "id" (JS.string "greeting") ]
             [ text "Hello!" ]
 -}
 node : String -> List Property -> List Node -> Node
-node = Native.VirtualDom.node
+node =
+    Native.VirtualDom.node
 
 
 {-| Just put plain text in the DOM. It will escape the string so that it appears
@@ -49,7 +52,8 @@ exactly as you specify.
     text "Hello World!"
 -}
 text : String -> Node
-text = Native.VirtualDom.text
+text =
+    Native.VirtualDom.text
 
 
 {-| Embed an `Node` value in Elm's rendering system. Like any other `Element`,
@@ -57,20 +61,22 @@ this requires a known width and height, so it is not yet clear if this can be
 made more convenient in the future.
 -}
 toElement : Int -> Int -> Node -> Element
-toElement = Native.VirtualDom.toElement
+toElement =
+    Native.VirtualDom.toElement
 
 
 {-| Embed an `Element` as `Html`.
 -}
 fromElement : Element -> Node
-fromElement = Native.VirtualDom.fromElement
+fromElement =
+    Native.VirtualDom.fromElement
 
 
 -- PROPERTIES
 
 type Property = Property
 
-property : String -> Json.Value -> Property
+property : String -> JS.Value -> Property
 property =
     Native.VirtualDom.property
 
@@ -81,17 +87,23 @@ attribute =
 
 -- EVENTS
 
-on : String -> Json.Decoder a -> (a -> Signal.Message) -> Property
-on = Native.VirtualDom.on
+on : String -> JS.Decoder a -> (a -> Mailbox.Message) -> Property
+on =
+    Native.VirtualDom.on
 
 
 -- OPTIMIZATION
 
 lazy : (a -> Node) -> a -> Node
-lazy = Native.VirtualDom.lazy
+lazy =
+    Native.VirtualDom.lazy
+
 
 lazy2 : (a -> b -> Node) -> a -> b -> Node
-lazy2 = Native.VirtualDom.lazy2
+lazy2 =
+    Native.VirtualDom.lazy2
+
 
 lazy3 : (a -> b -> c -> Node) -> a -> b -> c -> Node
-lazy3 = Native.VirtualDom.lazy3
+lazy3 =
+    Native.VirtualDom.lazy3
