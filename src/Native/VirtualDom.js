@@ -1693,7 +1693,7 @@ Elm.Native.VirtualDom.make = function(elm)
 
 	var Element = Elm.Native.Graphics.Element.make(elm);
 	var Promise = Elm.Native.Promise.make(elm);
-	var Json = Elm.Native.Json.make(elm);
+	var JavaScript = Elm.Native.JavaScript.make(elm);
 	var List = Elm.Native.List.make(elm);
 	var Utils = Elm.Native.Utils.make(elm);
 
@@ -1777,7 +1777,7 @@ Elm.Native.VirtualDom.make = function(elm)
 		delegator.listenTo(name);
 		function eventHandler(event)
 		{
-			var value = A2(Json.runDecoderValue, decoder, event);
+			var value = A2(JavaScript.runDecoderValue, decoder, event);
 			if (value.ctor === 'Ok')
 			{
 				var promise = createMessage(value._0)._0;
