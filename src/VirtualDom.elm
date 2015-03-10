@@ -18,7 +18,6 @@ that expose more helper functions for HTML or SVG.
 
 import Graphics.Element exposing (Element)
 import JavaScript.Decode as JS
-import Mailbox
 import Native.VirtualDom
 import Promise
 
@@ -87,7 +86,7 @@ attribute =
 
 -- EVENTS
 
-on : String -> JS.Decoder a -> (a -> Mailbox.Message) -> Property
+on : String -> JS.Decoder a -> (a -> Stream.Message) -> Property
 on =
     Native.VirtualDom.on
 
