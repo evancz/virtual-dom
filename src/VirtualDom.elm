@@ -16,10 +16,10 @@ that expose more helper functions for HTML or SVG.
 
 -}
 
-import Command
 import Graphics.Element exposing (Element)
 import JavaScript.Decode as JS
 import Native.VirtualDom
+import Task
 
 
 type Node = Node

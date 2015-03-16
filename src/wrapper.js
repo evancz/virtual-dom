@@ -23,7 +23,7 @@ Elm.Native.VirtualDom.make = function(elm)
 	var delegator = Delegator();
 
 	var Element = Elm.Native.Graphics.Element.make(elm);
-	var Command = Elm.Native.Command.make(elm);
+	var Task = Elm.Native.Task.make(elm);
 	var JavaScript = Elm.Native.JavaScript.make(elm);
 	var List = Elm.Native.List.make(elm);
 	var Utils = Elm.Native.Utils.make(elm);
@@ -111,8 +111,8 @@ Elm.Native.VirtualDom.make = function(elm)
 			var value = A2(JavaScript.runDecoderValue, decoder, event);
 			if (value.ctor === 'Ok')
 			{
-				var command = createMessage(value._0)._0;
-				Command.runOne(command);
+				var task = createMessage(value._0)._0;
+				Task.runOne(task);
 			}
 		}
 		return property(name, DataSetHook(eventHandler));
