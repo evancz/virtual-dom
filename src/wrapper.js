@@ -112,7 +112,7 @@ Elm.Native.VirtualDom.make = function(elm)
 			if (value.ctor === 'Ok')
 			{
 				var task = createMessage(value._0)._0;
-				Task.runOne(task);
+				Task.perform(task);
 			}
 		}
 		return property(name, DataSetHook(eventHandler));
