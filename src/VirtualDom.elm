@@ -19,7 +19,7 @@ that expose more helper functions for HTML or SVG.
 import Graphics.Element exposing (Element)
 import JavaScript.Decode as JS
 import Native.VirtualDom
-import Task
+import Port
 
 
 type Node = Node
@@ -86,7 +86,7 @@ attribute =
 
 -- EVENTS
 
-on : String -> JS.Decoder a -> (a -> Stream.Message) -> Property
+on : String -> JS.Decoder a -> (a -> Port.Message) -> Property
 on =
     Native.VirtualDom.on
 
