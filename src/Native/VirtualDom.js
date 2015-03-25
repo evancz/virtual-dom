@@ -1981,4 +1981,3 @@ Elm.Native.VirtualDom.make = function(elm)
 },{"data-set":2,"dom-delegator":8,"vdom/create-element":18,"vdom/patch":24,"vtree/diff":26,"vtree/is-vhook":29,"vtree/vnode":36,"vtree/vtext":38}],40:[function(require,module,exports){
 
 },{}]},{},[39]);
-;
