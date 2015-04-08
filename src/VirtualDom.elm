@@ -17,9 +17,9 @@ that expose more helper functions for HTML or SVG.
 -}
 
 import Graphics.Element exposing (Element)
-import JavaScript.Decode as JS
+import Json.Decode as Json
 import Native.VirtualDom
-import Port
+import Signal
 
 
 type Node = Node
@@ -28,7 +28,7 @@ type Node = Node
 include styles and event listeners, a list of CSS properties like `color`, and
 a list of child nodes.
 
-    import JavaScript.Encode as JS
+    import Json.Encode as Json
 
     hello : Node
     hello =
@@ -37,7 +37,7 @@ a list of child nodes.
     greeting : Node
     greeting =
         node "div"
-            [ property "id" (JS.string "greeting") ]
+            [ property "id" (Json.string "greeting") ]
             [ text "Hello!" ]
 -}
 node : String -> List Property -> List Node -> Node
@@ -75,9 +75,11 @@ fromElement =
 
 type Property = Property
 
-property : String -> JS.Value -> Property
+
+property : String -> Json.Value -> Property
 property =
     Native.VirtualDom.property
+
 
 attribute : String -> String -> Property
 attribute =
@@ -86,7 +88,7 @@ attribute =
 
 -- EVENTS
 
-on : String -> JS.Decoder a -> (a -> Port.Message) -> Property
+on : String -> Json.Decoder a -> (a -> Signal.Message) -> Property
 on =
     Native.VirtualDom.on
 

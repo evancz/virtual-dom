@@ -1692,9 +1692,9 @@ Elm.Native.VirtualDom.make = function(elm)
 	var delegator = Delegator();
 
 	var Element = Elm.Native.Graphics.Element.make(elm);
-	var Task = Elm.Native.Task.make(elm);
-	var JavaScript = Elm.Native.JavaScript.make(elm);
+	var Json = Elm.Native.Json.make(elm);
 	var List = Elm.Native.List.make(elm);
+	var Signal = Elm.Native.Signal.make(elm);
 	var Utils = Elm.Native.Utils.make(elm);
 
 	var ATTRIBUTE_KEY = 'UniqueNameThatOthersAreVeryUnlikelyToUse';
@@ -1777,11 +1777,10 @@ Elm.Native.VirtualDom.make = function(elm)
 		delegator.listenTo(name);
 		function eventHandler(event)
 		{
-			var value = A2(JavaScript.runDecoderValue, decoder, event);
+			var value = A2(Json.runDecoderValue, decoder, event);
 			if (value.ctor === 'Ok')
 			{
-				var task = createMessage(value._0)._0;
-				Task.perform(task);
+				Signal.sendMessage(createMessage(value._0));
 			}
 		}
 		return property(name, DataSetHook(eventHandler));
