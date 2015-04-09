@@ -19,7 +19,6 @@ that expose more helper functions for HTML or SVG.
 import Graphics.Element exposing (Element)
 import Json.Decode as Json
 import Native.VirtualDom
-import Signal
 
 
 type Node = Node
