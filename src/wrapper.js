@@ -156,21 +156,23 @@ Elm.Native.VirtualDom.make = function(elm)
 		return new VText(string);
 	}
 
+	function ElementWidget(element) {
+		this.element = element;
+	}
+
+	ElementWidget.prototype.type = "Widget";
+
+	ElementWidget.prototype.init = function init() {
+		return Element.render(this.element);
+	};
+
+	ElementWidget.prototype.update = function update(previous, node) {
+		return Element.update(node, previous.element, this.element);
+	};
+
 	function fromElement(element)
 	{
-		return {
-			type: "Widget",
-
-			element: element,
-
-			init: function () {
-				return Element.render(element);
-			},
-
-			update: function (previous, node) {
-				return Element.update(node, previous.element, element);
-			}
-		};
+		return new ElementWidget(element);
 	}
 
 	function toElement(width, height, html)
