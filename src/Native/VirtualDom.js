@@ -1825,17 +1825,20 @@ Elm.Native.VirtualDom.make = function(elm)
 		return new VText(string);
 	}
 
-	function ElementWidget(element) {
+	function ElementWidget(element)
+	{
 		this.element = element;
 	}
 
 	ElementWidget.prototype.type = "Widget";
 
-	ElementWidget.prototype.init = function init() {
+	ElementWidget.prototype.init = function init()
+	{
 		return Element.render(this.element);
 	};
 
-	ElementWidget.prototype.update = function update(previous, node) {
+	ElementWidget.prototype.update = function update(previous, node)
+	{
 		return Element.update(node, previous.element, this.element);
 	};
 
