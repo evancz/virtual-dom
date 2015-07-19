@@ -3,7 +3,7 @@ module VirtualDom
     , text, node
     , toElement, fromElement
     , Property, property, attribute
-    , on, onWithOptions, Options, defaultOptions
+    , on
     , lazy, lazy2, lazy3
     ) where
 
