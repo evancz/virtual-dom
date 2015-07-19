@@ -44,7 +44,14 @@ Elm.Native.VirtualDom.make = function(elm)
 		return object;
 	}
 
-	function node(name, propertyList, contents)
+	function node(name)
+	{
+		return F2(function(propertyList, contents) {
+			return makeNode(name, propertyList, contents);
+		});
+	}
+
+	function makeNode(name, propertyList, contents)
 	{
 		var props = listToProperties(propertyList);
 
@@ -273,7 +280,7 @@ Elm.Native.VirtualDom.make = function(elm)
 	}
 
 	return Elm.Native.VirtualDom.values = {
-		node: F3(node),
+		node: node,
 		text: text,
 		on: F4(on),
 
