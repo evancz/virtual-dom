@@ -3,7 +3,7 @@ module VirtualDom
     , text, node
     , toElement, fromElement
     , Property, property, attribute
-    , on
+    , on, onWithOptions, Options, defaultOptions
     , lazy, lazy2, lazy3
     ) where
 
@@ -17,7 +17,7 @@ that expose more helper functions for HTML or SVG.
 @docs Property, property, attribute
 
 # Events
-@docs on
+@docs on, onWithOptions, Options, defaultOptions
 
 # Optimizations
 @docs lazy, lazy2, lazy3
@@ -157,8 +157,41 @@ the resulting value is given to a function that creates a `Signal.Message`.
 So in our example, we will send `()` to the given `address`.
 -}
 on : String -> Json.Decoder a -> (a -> Signal.Message) -> Property
-on =
+on eventName decoder toMessage =
+    Native.VirtualDom.on eventName defaultOptions decoder toMessage
+
+
+{-| Same as `on` but you can set a few options.
+-}
+onWithOptions : String -> Options -> Json.Decoder a -> (a -> Signal.Message) -> Property
+onWithOptions =
     Native.VirtualDom.on
+
+
+{-| Options for an event listener. If `stopPropagation` is true, it means the
+event stops traveling through the DOM so it will not trigger any other event
+listeners. If `preventDefault` is true, any built-in browser behavior related
+to the event is prevented. For example, this is used with touch events when you
+want to treat them as gestures of your own, not as scrolls.
+-}
+type alias Options =
+    { stopPropagation : Bool
+    , preventDefault : Bool
+    }
+
+
+{-| Everything is `False` by default.
+
+    defaultOptions =
+        { stopPropagation = False
+        , preventDefault = False
+        }
+-}
+defaultOptions : Options
+defaultOptions =
+    { stopPropagation = False
+    , preventDefault = False
+    }
 
 
 -- OPTIMIZATION

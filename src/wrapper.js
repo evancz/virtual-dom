@@ -1,12 +1,10 @@
+var VNode = require('virtual-dom/vnode/vnode');
+var VText = require('virtual-dom/vnode/vtext');
+var diff = require('virtual-dom/vtree/diff');
+var patch = require('virtual-dom/vdom/patch');
+var createElement = require('virtual-dom/create-element');
+var isHook = require("virtual-dom/vnode/is-vhook");
 
-var VNode = require('vtree/vnode');
-var VText = require('vtree/vtext');
-var diff = require('vtree/diff');
-var patch = require('vdom/patch');
-var createElement = require('vdom/create-element');
-var DataSet = require("data-set");
-var Delegator = require("dom-delegator");
-var isHook = require("vtree/is-vhook");
 
 Elm.Native.VirtualDom = {};
 Elm.Native.VirtualDom.make = function(elm)
@@ -17,10 +15,6 @@ Elm.Native.VirtualDom.make = function(elm)
 	{
 		return elm.Native.VirtualDom.values;
 	}
-
-	// This manages event listeners. Somehow...
-	// Save a reference for use in on(...)
-	var delegator = Delegator();
 
 	var Element = Elm.Native.Graphics.Element.make(elm);
 	var Json = Elm.Native.Json.make(elm);
@@ -102,36 +96,26 @@ Elm.Native.VirtualDom.make = function(elm)
 		};
 	}
 
-	function on(name, decoder, createMessage)
+	function on(name, options, decoder, createMessage)
 	{
-		// Ensure we're listening for this type of event
-		delegator.listenTo(name);
 		function eventHandler(event)
 		{
 			var value = A2(Json.runDecoderValue, decoder, event);
 			if (value.ctor === 'Ok')
 			{
+				if (options.stopPropagation)
+				{
+					event.stopPropagation();
+				}
+				if (options.preventDefault)
+				{
+					event.preventDefault();
+				}
 				Signal.sendMessage(createMessage(value._0));
 			}
 		}
-		return property(name, DataSetHook(eventHandler));
+		return property('on' + name, eventHandler);
 	}
-
-	function DataSetHook(value)
-	{
-		if (!(this instanceof DataSetHook))
-		{
-			return new DataSetHook(value);
-		}
-
-		this.value = value;
-	}
-
-	DataSetHook.prototype.hook = function (node, propertyName) {
-		var ds = DataSet(node);
-		ds[propertyName] = this.value;
-	};
-
 
 	function SoftSetHook(value)
 	{
@@ -291,7 +275,7 @@ Elm.Native.VirtualDom.make = function(elm)
 	return Elm.Native.VirtualDom.values = {
 		node: F3(node),
 		text: text,
-		on: F3(on),
+		on: F4(on),
 
 		property: F2(property),
 		attribute: F2(attribute),
