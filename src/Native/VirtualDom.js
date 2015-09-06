@@ -530,30 +530,23 @@ var isThunk = require("./is-thunk")
 
 module.exports = handleThunk
 
-function handleThunk(a, b) {
-    var renderedA = a
-    var renderedB = b
-
-    if (isThunk(b)) {
-        renderedB = renderThunk(b, a)
+function handleThunk(oldThunk, newThunk) {
+    if (isThunk(newThunk)) {
+        newThunk = renderThunk(newThunk, oldThunk);
     }
 
-    if (isThunk(a)) {
-        renderedA = renderThunk(a, null)
+    if (isThunk(oldThunk)) {
+        oldThunk = oldThunk.vnode;
     }
 
     return {
-        a: renderedA,
-        b: renderedB
+        a: oldThunk,
+        b: newThunk
     }
 }
 
 function renderThunk(thunk, previous) {
-    var renderedThunk = thunk.vnode
-
-    if (!renderedThunk) {
-        renderedThunk = thunk.vnode = thunk.render(previous)
-    }
+    var renderedThunk = thunk.render(previous);
 
     if (!(isVNode(renderedThunk) ||
             isVText(renderedThunk) ||
@@ -1441,18 +1434,17 @@ Elm.Native.VirtualDom.make = function(elm)
 	{
 		this.fn = fn;
 		this.args = args;
-		this.vnode = null;
+		this.vnode = thunk();
 		this.key = undefined;
 		this.thunk = thunk;
 	}
 
 	Thunk.prototype.type = "Thunk";
-	Thunk.prototype.update = updateThunk;
 	Thunk.prototype.render = renderThunk;
 
 	function shouldUpdate(current, previous)
 	{
-		if (current.fn !== previous.fn)
+		if (!previous || current.fn !== previous.fn)
 		{
 			return true;
 		}
@@ -1463,7 +1455,7 @@ Elm.Native.VirtualDom.make = function(elm)
 
 		for (var i = cargs.length; i--; )
 		{
-			if (cargs[i] !== pargs[i])
+			if (!Utils.eq(cargs[i], pargs[i]))
 			{
 				return true;
 			}
@@ -1472,26 +1464,15 @@ Elm.Native.VirtualDom.make = function(elm)
 		return false;
 	}
 
-	function updateThunk(previous, domNode)
+	function renderThunk(previous)
 	{
-		if (!shouldUpdate(this, previous))
-		{
-			this.vnode = previous.vnode;
-			return;
-		}
-
-		if (!this.vnode)
+		if (shouldUpdate(this, previous))
 		{
 			this.vnode = this.thunk();
+			return this.vnode;
 		}
 
-		var patches = diff(previous.vnode, this.vnode);
-		patch(domNode, patches);
-	}
-
-	function renderThunk()
-	{
-		return this.thunk();
+		return previous.vnode;
 	}
 
 	return Elm.Native.VirtualDom.values = {
