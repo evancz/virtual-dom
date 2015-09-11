@@ -4,5 +4,8 @@
     "description": "",
     "dependencies": {
         "virtual-dom": "2.0.1"
+    },
+    "devDependencies": {
+        "browserify": "11.1.0"
     }
 }
