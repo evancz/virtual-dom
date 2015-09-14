@@ -20,10 +20,9 @@ testLazyIdenticalRecord =
     test "isn't called again with identical record" <|
         let record = { x = "a", y = "b" }
             wrappedRender = unsafeRecordCallCount renderRecord
-            lazyRender = lazy wrappedRender
-            call1 = forceRenderDom <| lazyRender record
-            call2 = forceRenderDom <| lazyRender record
-            call3 = forceRenderDom <| lazyRender record
+            call1 = forceRenderDom <| lazy wrappedRender record
+            call2 = forceRenderDom <| lazy wrappedRender record
+            call3 = forceRenderDom <| lazy wrappedRender record
         in
             assertEqual 1 <| unsafeQueryCallCount wrappedRender
 
@@ -31,10 +30,9 @@ testLazyIdenticalRecord =
 testLazyIdenticalPrimitive =
     test "isn't called again with identical primitive" <|
         let wrappedRender = unsafeRecordCallCount renderPrimitive
-            lazyRender = lazy wrappedRender
-            call1 = forceRenderDom <| lazyRender 5
-            call2 = forceRenderDom <| lazyRender 5
-            call3 = forceRenderDom <| lazyRender 5
+            call1 = forceRenderDom <| lazy wrappedRender 5
+            call2 = forceRenderDom <| lazy wrappedRender 5
+            call3 = forceRenderDom <| lazy wrappedRender 5
         in
             assertEqual 1 <| unsafeQueryCallCount wrappedRender
 
@@ -43,10 +41,9 @@ testLazyRecordMutationOfIdenticalValue =
     test "isn't called again with record mutation of identical value" <|
         let record = { x = "a", y = "b" }
             wrappedRender = unsafeRecordCallCount renderRecord
-            lazyRender = lazy wrappedRender
-            call1 = forceRenderDom <| lazyRender record
-            call2 = forceRenderDom <| lazyRender { record | x <- "a" }
-            call3 = forceRenderDom <| lazyRender { record | x <- "a", y <- "b" }
+            call1 = forceRenderDom <| lazy wrappedRender record
+            call2 = forceRenderDom <| lazy wrappedRender { record | x <- "a" }
+            call3 = forceRenderDom <| lazy wrappedRender { record | x <- "a", y <- "b" }
         in
             assertEqual 1 <| unsafeQueryCallCount wrappedRender
 
@@ -54,10 +51,9 @@ testLazyRecordMutationOfIdenticalValue =
 testNotLazyDifferentRecord =
     test "is called again with an equivalent but different record" <|
         let wrappedRender = unsafeRecordCallCount renderRecord
-            lazyRender = lazy wrappedRender
-            call1 = forceRenderDom <| lazyRender { x = "a", y = "b" }
-            call2 = forceRenderDom <| lazyRender { x = "a", y = "b" }
-            call3 = forceRenderDom <| lazyRender { x = "a", y = "b" }
+            call1 = forceRenderDom <| lazy wrappedRender { x = "a", y = "b" }
+            call2 = forceRenderDom <| lazy wrappedRender { x = "a", y = "b" }
+            call3 = forceRenderDom <| lazy wrappedRender { x = "a", y = "b" }
         in
             assertEqual 3 <| unsafeQueryCallCount wrappedRender
 
