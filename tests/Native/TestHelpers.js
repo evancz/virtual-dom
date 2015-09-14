@@ -8,6 +8,8 @@ Elm.Native.TestHelpers.make = function(localRuntime)
 		return localRuntime.Native.TestHelpers.values;
 	}
 
+	var VirtualDom = Elm.Native.VirtualDom.make(localRuntime);
+
 	function unsafeRecordCallCount(f) {
 		function wrapper(a) {
 			wrapper.__elm_test_call_count += 1;
@@ -26,7 +28,8 @@ Elm.Native.TestHelpers.make = function(localRuntime)
 
 	Elm.Native.TestHelpers.values = {
 		unsafeRecordCallCount: unsafeRecordCallCount,
-		unsafeQueryCallCount: unsafeQueryCallCount
+		unsafeQueryCallCount: unsafeQueryCallCount,
+		updateAndReplace: F3(VirtualDom.updateAndReplace)
 	};
 	return localRuntime.Native.TestHelpers.values = Elm.Native.TestHelpers.values;
 };

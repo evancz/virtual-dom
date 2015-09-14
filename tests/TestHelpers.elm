@@ -15,6 +15,20 @@ unsafeQueryCallCount =
 
 type OpaqueDom = OpaqueDom
 
-forceRenderDom : Node -> OpaqueDom
-forceRenderDom =
+render : Node -> OpaqueDom
+render =
     Native.VirtualDom.render
+
+updateAndReplace : OpaqueDom -> Node -> Node -> OpaqueDom
+updateAndReplace =
+    Native.TestHelpers.updateAndReplace
+
+
+renderDom : Node -> (OpaqueDom, Node)
+renderDom vdom =
+    (render vdom, vdom)
+
+
+updateDom : (OpaqueDom, Node) -> Node -> (OpaqueDom, Node)
+updateDom (oldDom, oldVDom) newVDom =
+    (updateAndReplace oldDom oldVDom newVDom, newVDom)
