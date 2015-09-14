@@ -284,7 +284,7 @@ Elm.Native.VirtualDom.make = function(elm)
 		return this.thunk();
 	}
 
-	return Elm.Native.VirtualDom.values = {
+	return elm.Native.VirtualDom.values = Elm.Native.VirtualDom.values = {
 		node: node,
 		text: text,
 		on: F4(on),
