@@ -229,15 +229,17 @@ Elm.Native.VirtualDom.make = function(elm)
 
 	function Thunk(fn, args, thunk)
 	{
-		this.fn = fn;
-		this.args = args;
+		/* public (used by VirtualDom.js) */
 		this.vnode = null;
 		this.key = undefined;
+
+		/* private */
+		this.fn = fn;
+		this.args = args;
 		this.thunk = thunk;
 	}
 
 	Thunk.prototype.type = "Thunk";
-	Thunk.prototype.update = updateThunk;
 	Thunk.prototype.render = renderThunk;
 
 	function shouldUpdate(current, previous)
@@ -262,26 +264,16 @@ Elm.Native.VirtualDom.make = function(elm)
 		return false;
 	}
 
-	function updateThunk(previous, domNode)
+	function renderThunk(previous)
 	{
-		if (!shouldUpdate(this, previous))
+		if (previous == null || shouldUpdate(this, previous))
 		{
-			this.vnode = previous.vnode;
-			return;
+			return this.thunk();
 		}
-
-		if (!this.vnode)
+		else
 		{
-			this.vnode = this.thunk();
+			return previous.vnode;
 		}
-
-		var patches = diff(previous.vnode, this.vnode);
-		patch(domNode, patches);
-	}
-
-	function renderThunk()
-	{
-		return this.thunk();
 	}
 
 	return elm.Native.VirtualDom.values = Elm.Native.VirtualDom.values = {
