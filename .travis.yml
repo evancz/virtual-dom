@@ -5,5 +5,4 @@ install:
   - npm install
 
 script:
-  - cd tests/
-  - ./run-tests.sh
+  - ./tests/run-tests.sh

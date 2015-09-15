@@ -65,6 +65,8 @@ tests =
         [
             testLazyIdenticalRecord,
             testLazyIdenticalPrimitive,
-            testLazyRecordMutationOfIdenticalValue,
+            -- Re-enable this test when core supports checking
+            -- record update values for identity before copying:
+            -- testLazyRecordMutationOfIdenticalValue,
             testNotLazyDifferentRecord
         ]
