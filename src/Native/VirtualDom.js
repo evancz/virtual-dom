@@ -1,9 +1,6 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-var createElement = require("./vdom/create-element.js")
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 
-module.exports = createElement
-
-},{"./vdom/create-element.js":6}],2:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 (function (global){
 var topLevel = typeof global !== 'undefined' ? global :
     typeof window !== 'undefined' ? window : {}
@@ -21,8 +18,8 @@ if (typeof document !== 'undefined') {
     module.exports = doccy;
 }
 
-}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"min-document":24}],3:[function(require,module,exports){
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"min-document":1}],3:[function(require,module,exports){
 "use strict";
 
 module.exports = function isObject(x) {
@@ -1212,7 +1209,7 @@ var VNode = require('virtual-dom/vnode/vnode');
 var VText = require('virtual-dom/vnode/vtext');
 var diff = require('virtual-dom/vtree/diff');
 var patch = require('virtual-dom/vdom/patch');
-var createElement = require('virtual-dom/create-element');
+var createElement = require('virtual-dom/vdom/create-element');
 var isHook = require("virtual-dom/vnode/is-vhook");
 
 
@@ -1439,15 +1436,17 @@ Elm.Native.VirtualDom.make = function(elm)
 
 	function Thunk(fn, args, thunk)
 	{
-		this.fn = fn;
-		this.args = args;
+		/* public (used by VirtualDom.js) */
 		this.vnode = null;
 		this.key = undefined;
+
+		/* private */
+		this.fn = fn;
+		this.args = args;
 		this.thunk = thunk;
 	}
 
 	Thunk.prototype.type = "Thunk";
-	Thunk.prototype.update = updateThunk;
 	Thunk.prototype.render = renderThunk;
 
 	function shouldUpdate(current, previous)
@@ -1472,29 +1471,19 @@ Elm.Native.VirtualDom.make = function(elm)
 		return false;
 	}
 
-	function updateThunk(previous, domNode)
+	function renderThunk(previous)
 	{
-		if (!shouldUpdate(this, previous))
+		if (previous == null || shouldUpdate(this, previous))
 		{
-			this.vnode = previous.vnode;
-			return;
+			return this.thunk();
 		}
-
-		if (!this.vnode)
+		else
 		{
-			this.vnode = this.thunk();
+			return previous.vnode;
 		}
-
-		var patches = diff(previous.vnode, this.vnode);
-		patch(domNode, patches);
 	}
 
-	function renderThunk()
-	{
-		return this.thunk();
-	}
-
-	return Elm.Native.VirtualDom.values = {
+	return elm.Native.VirtualDom.values = Elm.Native.VirtualDom.values = {
 		node: node,
 		text: text,
 		on: F4(on),
@@ -1514,6 +1503,4 @@ Elm.Native.VirtualDom.make = function(elm)
 	};
 };
 
-},{"virtual-dom/create-element":1,"virtual-dom/vdom/patch":9,"virtual-dom/vnode/is-vhook":13,"virtual-dom/vnode/vnode":18,"virtual-dom/vnode/vtext":20,"virtual-dom/vtree/diff":22}],24:[function(require,module,exports){
-
-},{}]},{},[23]);
+},{"virtual-dom/vdom/create-element":6,"virtual-dom/vdom/patch":9,"virtual-dom/vnode/is-vhook":13,"virtual-dom/vnode/vnode":18,"virtual-dom/vnode/vtext":20,"virtual-dom/vtree/diff":22}]},{},[23]);
