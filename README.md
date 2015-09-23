@@ -1,4 +1,5 @@
 # Virtual DOM for Elm
+[![Build Status](https://travis-ci.org/evancz/virtual-dom.svg)](https://travis-ci.org/evancz/virtual-dom)
 
 Minimal bindings to a virtual DOM system. Useful for creating libraries for HTML and SVG.
 
