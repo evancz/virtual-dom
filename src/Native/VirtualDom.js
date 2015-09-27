@@ -1279,7 +1279,7 @@ Elm.Native.VirtualDom.make = function(elm)
 
 		// ensure that setting text of an input does not move the cursor
 		var useSoftSet =
-			name === 'input'
+			(name === 'input' || name === 'textarea')
 			&& props.value !== undefined
 			&& !isHook(props.value);
 
