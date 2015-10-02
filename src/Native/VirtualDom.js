@@ -1231,24 +1231,14 @@ Elm.Native.VirtualDom.make = function(elm)
 
 	var ATTRIBUTE_KEY = 'UniqueNameThatOthersAreVeryUnlikelyToUse';
 
-	function listToProperties(list)
+
+
+	// VIRTUAL DOM NODES
+
+
+	function text(string)
 	{
-		var object = {};
-		while (list.ctor !== '[]')
-		{
-			var entry = list._0;
-			if (entry.key === ATTRIBUTE_KEY)
-			{
-				object.attributes = object.attributes || {};
-				object.attributes[entry.value.attrKey] = entry.value.attrValue;
-			}
-			else
-			{
-				object[entry.key] = entry.value;
-			}
-			list = list._1;
-		}
-		return object;
+		return new VText(string);
 	}
 
 	function node(name)
@@ -1257,6 +1247,10 @@ Elm.Native.VirtualDom.make = function(elm)
 			return makeNode(name, propertyList, contents);
 		});
 	}
+
+
+	// BUILD VIRTUAL DOME NODES
+
 
 	function makeNode(name, propertyList, contents)
 	{
@@ -1291,6 +1285,31 @@ Elm.Native.VirtualDom.make = function(elm)
 		return new VNode(name, props, List.toArray(contents), key, namespace);
 	}
 
+	function listToProperties(list)
+	{
+		var object = {};
+		while (list.ctor !== '[]')
+		{
+			var entry = list._0;
+			if (entry.key === ATTRIBUTE_KEY)
+			{
+				object.attributes = object.attributes || {};
+				object.attributes[entry.value.attrKey] = entry.value.attrValue;
+			}
+			else
+			{
+				object[entry.key] = entry.value;
+			}
+			list = list._1;
+		}
+		return object;
+	}
+
+
+
+	// PROPERTIES AND ATTRIBUTES
+
+
 	function property(key, value)
 	{
 		return {
@@ -1309,6 +1328,11 @@ Elm.Native.VirtualDom.make = function(elm)
 			}
 		};
 	}
+
+
+
+	// EVENTS
+
 
 	function on(name, options, decoder, createMessage)
 	{
@@ -1349,10 +1373,10 @@ Elm.Native.VirtualDom.make = function(elm)
 		}
 	};
 
-	function text(string)
-	{
-		return new VText(string);
-	}
+
+
+	// INTEGRATION WITH ELEMENTS
+
 
 	function ElementWidget(element)
 	{
@@ -1387,6 +1411,11 @@ Elm.Native.VirtualDom.make = function(elm)
 		});
 	}
 
+
+
+	// RENDER AND UPDATE
+
+
 	function render(model)
 	{
 		var element = Element.createNode('div');
@@ -1406,6 +1435,11 @@ Elm.Native.VirtualDom.make = function(elm)
 		var newNode = patch(node, patches);
 		return newNode;
 	}
+
+
+
+	// LAZINESS
+
 
 	function lazyRef(fn, a)
 	{
@@ -1482,6 +1516,7 @@ Elm.Native.VirtualDom.make = function(elm)
 			return previous.vnode;
 		}
 	}
+
 
 	return elm.Native.VirtualDom.values = Elm.Native.VirtualDom.values = {
 		node: node,
