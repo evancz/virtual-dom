@@ -2,7 +2,7 @@ module VirtualDom
     ( Node
     , text, node
     , toElement, fromElement
-    , Property, property, attribute
+    , Property, property, attribute, attributeNS
     , on, onWithOptions, Options, defaultOptions
     , lazy, lazy2, lazy3
     ) where
@@ -14,7 +14,7 @@ that expose more helper functions for HTML or SVG.
 @docs Node, text, node
 
 # Declare Properties and Attributes
-@docs Property, property, attribute
+@docs Property, property, attribute, attributeNS
 
 # Events
 @docs on, onWithOptions, Options, defaultOptions
@@ -138,6 +138,16 @@ be in HTML, not `className` as it would appear in JS.
 attribute : String -> String -> Property
 attribute =
     Native.VirtualDom.attribute
+
+
+{-| Would you believe that there is another way to do this?! This corresponds
+to JavaScript's `setAttributeNS` function under the hood. It is doing pretty
+much the same thing as `attribute` but you are able to have "namespaced"
+attributes. This is used in some SVG stuff at least.
+-}
+attributeNS : String -> String -> String -> Property
+attributeNS =
+    Native.VirtualDom.attributeNS
 
 
 -- EVENTS
