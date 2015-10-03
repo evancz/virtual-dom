@@ -4,6 +4,7 @@ var diff = require('virtual-dom/vtree/diff');
 var patch = require('virtual-dom/vdom/patch');
 var createElement = require('virtual-dom/vdom/create-element');
 var isHook = require("virtual-dom/vnode/is-vhook");
+var sel = require('vtree-select');
 
 
 Elm.Native.VirtualDom = {};
@@ -363,6 +364,38 @@ Elm.Native.VirtualDom.make = function(elm)
 	}
 
 
+
+	// INSPECTION
+
+
+	function select(selector, root)
+	{
+		var matches = sel(selector)(root);
+		if (matches == null) {
+			return List.fromArray([]);
+		} else {
+			return List.fromArray(matches);
+		}
+	}
+
+	function attr(name, root)
+	{
+		if (root.properties == null) return { ctor: "Nothing" };
+		var val = root.properties[name];
+
+		if (val == null) {
+			if (root.properties.attributes == null) return { ctor: "Nothing" };
+			val = root.properties.attributes[name];
+		}
+
+		if (val == null) {
+			return { ctor: "Nothing" };
+		} else {
+			return { ctor: "Just", _0: val };
+		}
+	}
+
+
 	return elm.Native.VirtualDom.values = Elm.Native.VirtualDom.values = {
 		node: node,
 		text: text,
@@ -375,6 +408,9 @@ Elm.Native.VirtualDom.make = function(elm)
 		lazy: F2(lazyRef),
 		lazy2: F3(lazyRef2),
 		lazy3: F4(lazyRef3),
+
+		select: F2(select),
+		attr: F2(attr),
 
 		toElement: F3(toElement),
 		fromElement: fromElement,
