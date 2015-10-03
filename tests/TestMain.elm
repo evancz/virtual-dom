@@ -6,13 +6,15 @@ import IO.Runner exposing (Request, Response)
 import IO.Runner as Run
 
 import TestCases.Lazy
+import TestCases.Inspect
 
 tests : Test
 tests =
     suite
         "VirtualDom Library Tests"
         [
-            TestCases.Lazy.tests
+            TestCases.Lazy.tests,
+            TestCases.Inspect.tests
         ]
 
 console : IO ()

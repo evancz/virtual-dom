@@ -5,7 +5,9 @@ set -e
 cd "$(dirname "$0")"
 
 mkdir -p build/virtual-dom/Native
+mkdir -p build/virtual-dom/VirtualDom
 cp ../src/VirtualDom.elm build/virtual-dom/
+cp ../src/VirtualDom/Inspect.elm build/virtual-dom/VirtualDom
 $(npm bin)/browserify ../src/wrapper.js -o build/VirtualDom.browser.js
 
 set +e
