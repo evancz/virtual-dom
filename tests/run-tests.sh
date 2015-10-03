@@ -17,7 +17,7 @@ if [ $? != 0 ]; then
 fi
 set -e
 
-$(npm bin)/browserify --no-browser-field ../src/wrapper.js -o build/virtual-dom/Native/VirtualDom.js
+node compile.js > build/virtual-dom/Native/VirtualDom.js
 
 elm-make --yes --output build/test.js TestMain.elm
 cat elm-io-ports.js >> build/test.js
