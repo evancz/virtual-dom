@@ -4,6 +4,7 @@ var diff = require('virtual-dom/vtree/diff');
 var patch = require('virtual-dom/vdom/patch');
 var createElement = require('virtual-dom/vdom/create-element');
 var isHook = require("virtual-dom/vnode/is-vhook");
+var toHtml = require('vdom-to-html');
 
 
 Elm.Native.VirtualDom = {};
@@ -251,6 +252,7 @@ Elm.Native.VirtualDom.make = function(elm)
 			ctor: 'Custom',
 			type: 'evancz/elm-html',
 			render: render,
+			renderToString: renderToString,
 			update: update,
 			model: html
 		});
@@ -380,6 +382,7 @@ Elm.Native.VirtualDom.make = function(elm)
 		fromElement: fromElement,
 
 		render: createElement,
+		renderToString: toHtml,
 		updateAndReplace: updateAndReplace
 	};
 };

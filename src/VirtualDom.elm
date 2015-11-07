@@ -1,7 +1,7 @@
 module VirtualDom
     ( Node
     , text, node
-    , toElement, fromElement
+    , toElement, fromElement, toString
     , Property, property, attribute, attributeNS
     , on, onWithOptions, Options, defaultOptions
     , lazy, lazy2, lazy3
@@ -82,6 +82,12 @@ toElement =
 fromElement : Element -> Node
 fromElement =
     Native.VirtualDom.fromElement
+
+{- | Convert `Html` to `String`
+-}
+toString : Node -> String
+toString =
+    Native.VirtualDom.renderToString
 
 
 -- PROPERTIES
