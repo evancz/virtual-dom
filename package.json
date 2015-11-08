@@ -3,7 +3,7 @@
   "version": "",
   "description": "",
   "dependencies": {
-    "vdom-to-html": "^2.1.1",
+    "vdom-to-html": "^2.2.0",
     "virtual-dom": "2.1.1"
   },
   "devDependencies": {
