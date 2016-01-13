@@ -1,9 +1,8 @@
 
 import ElmTest.Runner.Console exposing (runDisplay)
 import ElmTest.Test exposing (Test, suite)
-import IO.IO exposing (IO)
-import IO.Runner exposing (Request, Response)
-import IO.Runner as Run
+import Console exposing (IO)
+import Task exposing (Task)
 
 import TestCases.Lazy
 
@@ -15,10 +14,5 @@ tests =
             TestCases.Lazy.tests
         ]
 
-console : IO ()
-console = runDisplay tests
-
-port requests : Signal Request
-port requests = Run.run responses console
-
-port responses : Signal Response
+port runner : Signal (Task x ())
+port runner = Console.run (runDisplay tests)

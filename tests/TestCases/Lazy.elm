@@ -42,8 +42,8 @@ testLazyRecordMutationOfIdenticalValue =
         let record = { x = "a", y = "b" }
             wrappedRender = unsafeRecordCallCount renderRecord
             v1 = renderDom <| lazy wrappedRender record
-            v2 = updateDom v1 <| lazy wrappedRender { record | x <- "a" }
-            v3 = updateDom v2 <| lazy wrappedRender { record | x <- "a", y <- "b" }
+            v2 = updateDom v1 <| lazy wrappedRender { record | x = "a" }
+            v3 = updateDom v2 <| lazy wrappedRender { record | x = "a", y = "b" }
         in
             assertEqual 1 <| unsafeQueryCallCount wrappedRender
 

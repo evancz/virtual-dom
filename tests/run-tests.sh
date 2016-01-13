@@ -20,5 +20,5 @@ set -e
 $(npm bin)/browserify --no-browser-field ../src/wrapper.js -o build/virtual-dom/Native/VirtualDom.js
 
 elm-make --yes --output build/test.js TestMain.elm
-cat elm-io-ports.js >> build/test.js
+echo "Elm.worker(Elm.Main);" >> build/test.js
 node build/test.js
