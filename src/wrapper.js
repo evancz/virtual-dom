@@ -196,6 +196,11 @@ Elm.Native.VirtualDom.make = function(elm)
 				}
 				Signal.sendMessage(createMessage(value._0));
 			}
+			else if(value.ctor === 'Err')
+			{
+				console.log("Unable to decode value: " + value._0 + " event contents: ");
+				console.log(event);
+			}
 		}
 		return property('on' + name, eventHandler);
 	}
