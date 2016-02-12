@@ -4,6 +4,7 @@ module VirtualDom
     , toElement, fromElement
     , Property, property, attribute, attributeNS
     , on, onWithOptions, Options, defaultOptions
+    , map
     , lazy, lazy2, lazy3
     ) where
 
@@ -19,11 +20,11 @@ that expose more helper functions for HTML or SVG.
 # Events
 @docs on, onWithOptions, Options, defaultOptions
 
+# Routing Messages
+@docs map
+
 # Optimizations
 @docs lazy, lazy2, lazy3
-
-# Conversions
-@docs toElement, fromElement
 
 -}
 
@@ -34,7 +35,7 @@ import Native.VirtualDom
 
 {-| An immutable chunk of data representing a DOM node. This can be HTML or SVG.
 -}
-type Node = Node
+type Node msg = Node
 
 
 {-| Create a DOM node with a tag name, a list of HTML properties that can
@@ -53,9 +54,9 @@ a list of child nodes.
             [ property "id" (Json.string "greeting") ]
             [ text "Hello!" ]
 -}
-node : String -> List Property -> List Node -> Node
+node : String -> List (Property msg) -> List (Node msg) -> Node msg
 node =
-    Native.VirtualDom.node
+  Native.VirtualDom.node
 
 
 {-| Just put plain text in the DOM. It will escape the string so that it appears
@@ -63,28 +64,19 @@ exactly as you specify.
 
     text "Hello World!"
 -}
-text : String -> Node
+text : String -> Node msg
 text =
-    Native.VirtualDom.text
+  Native.VirtualDom.text
 
 
-{-| Embed an `Node` value in Elm's rendering system. Like any other `Element`,
-this requires a known width and height, so it is not yet clear if this can be
-made more convenient in the future.
--}
-toElement : Int -> Int -> Node -> Element
-toElement =
-    Native.VirtualDom.toElement
+map : (a -> msg) -> Node a -> Node msg
+map =
+  Native.VirtualDom.map
 
-
-{-| Embed an `Element` as `Html`.
--}
-fromElement : Element -> Node
-fromElement =
-    Native.VirtualDom.fromElement
 
 
 -- PROPERTIES
+
 
 {-| When using HTML and JS, there are two ways to specify parts of a DOM node.
 
@@ -102,7 +94,7 @@ corresponding property. Sometimes changing an attribute does not change the
 underlying property. For example, as of this writing, the `webkit-playsinline`
 attribute can be used in HTML, but there is no corresponding property!
 -}
-type Property = Property
+type Property msg = Property
 
 
 {-| Create arbitrary *properties*.
@@ -118,9 +110,9 @@ type Property = Property
 Notice that you must give the *property* name, so we use `className` as it
 would be in JavaScript, not `class` as it would appear in HTML.
 -}
-property : String -> Json.Value -> Property
+property : String -> Json.Value -> Property msg
 property =
-    Native.VirtualDom.property
+  Native.VirtualDom.property
 
 
 {-| Create arbitrary HTML *attributes*. Maps onto JavaScript’s `setAttribute`
@@ -135,9 +127,9 @@ function under the hood.
 Notice that you must give the *attribute* name, so we use `class` as it would
 be in HTML, not `className` as it would appear in JS.
 -}
-attribute : String -> String -> Property
+attribute : String -> String -> Property msg
 attribute =
-    Native.VirtualDom.attribute
+  Native.VirtualDom.attribute
 
 
 {-| Would you believe that there is another way to do this?! This corresponds
@@ -145,9 +137,9 @@ to JavaScript's `setAttributeNS` function under the hood. It is doing pretty
 much the same thing as `attribute` but you are able to have "namespaced"
 attributes. This is used in some SVG stuff at least.
 -}
-attributeNS : String -> String -> String -> Property
+attributeNS : String -> String -> String -> Property msg
 attributeNS =
-    Native.VirtualDom.attributeNS
+  Native.VirtualDom.attributeNS
 
 
 -- EVENTS
@@ -166,16 +158,16 @@ you pull information out of the event object. If that decoder is successful,
 the resulting value is given to a function that creates a `Signal.Message`.
 So in our example, we will send `()` to the given `address`.
 -}
-on : String -> Json.Decoder a -> (a -> Signal.Message) -> Property
-on eventName decoder toMessage =
-    Native.VirtualDom.on eventName defaultOptions decoder toMessage
+on : String -> Json.Decoder msg -> Property msg
+on eventName decoder =
+  onWithOptions eventName defaultOptions decoder
 
 
 {-| Same as `on` but you can set a few options.
 -}
-onWithOptions : String -> Options -> Json.Decoder a -> (a -> Signal.Message) -> Property
+onWithOptions : String -> Options -> Json.Decoder msg -> Property msg
 onWithOptions =
-    Native.VirtualDom.on
+  Native.VirtualDom.on
 
 
 {-| Options for an event listener. If `stopPropagation` is true, it means the
@@ -185,9 +177,9 @@ to the event is prevented. For example, this is used with touch events when you
 want to treat them as gestures of your own, not as scrolls.
 -}
 type alias Options =
-    { stopPropagation : Bool
-    , preventDefault : Bool
-    }
+  { stopPropagation : Bool
+  , preventDefault : Bool
+  }
 
 
 {-| Everything is `False` by default.
@@ -199,12 +191,14 @@ type alias Options =
 -}
 defaultOptions : Options
 defaultOptions =
-    { stopPropagation = False
-    , preventDefault = False
-    }
+  { stopPropagation = False
+  , preventDefault = False
+  }
+
 
 
 -- OPTIMIZATION
+
 
 {-| A performance optimization that delays the building of virtual DOM nodes.
 
@@ -214,20 +208,21 @@ can check to see if `model` is referentially equal to the previous value used,
 and if so, we just stop. No need to build up the tree structure and diff it,
 we know if the input to `view` is the same, the output must be the same!
 -}
-lazy : (a -> Node) -> a -> Node
+lazy : (a -> Node msg) -> a -> Node msg
 lazy =
-    Native.VirtualDom.lazy
+  Native.VirtualDom.lazy
 
 
 {-| Same as `lazy` but checks on two arguments.
 -}
-lazy2 : (a -> b -> Node) -> a -> b -> Node
+lazy2 : (a -> b -> Node msg) -> a -> b -> Node msg
 lazy2 =
-    Native.VirtualDom.lazy2
+  Native.VirtualDom.lazy2
 
 
 {-| Same as `lazy` but checks on three arguments.
 -}
-lazy3 : (a -> b -> c -> Node) -> a -> b -> c -> Node
+lazy3 : (a -> b -> c -> Node msg) -> a -> b -> c -> Node msg
 lazy3 =
-    Native.VirtualDom.lazy3
+  Native.VirtualDom.lazy3
+
