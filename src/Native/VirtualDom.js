@@ -200,6 +200,76 @@ function equalEvents(a, b)
 
 
 
+////////////  RENDERER  ////////////
+
+
+function renderer(parent, tagger, initialVirtualNode)
+{
+	var domNode = render(initialVirtualNode, tagger);
+	parent.appendChild(domNode);
+
+	var state = 'NO_REQUEST';
+	var currentVirtualNode = initialVirtualNode;
+	var nextVirtualNode = initialVirtualNode;
+
+	function registerVirtualNode(vnode)
+	{
+		if (state === 'NO_REQUEST')
+		{
+			rAF(updateIfNeeded);
+		}
+		state = 'PENDING_REQUEST';
+		nextVirtualNode = vnode;
+	}
+
+	function updateIfNeeded()
+	{
+		switch (state)
+		{
+			case 'NO_REQUEST':
+				throw new Error(
+					'Unexpected draw callback.\n' +
+					'Please report this to <https://github.com/elm-lang/core/issues>.'
+				);
+
+			case 'PENDING_REQUEST':
+				rAF(updateIfNeeded);
+				state = 'EXTRA_REQUEST';
+				return flush();
+
+			case 'EXTRA_REQUEST':
+				state = 'NO_REQUEST';
+				return;
+		}
+	}
+
+	function flush()
+	{
+		var patches = diff(currentVirtualNode, nextVirtualNode);
+		applyPatches(domNode, patches);
+		currentVirtualNode = nextVirtualNode;
+	}
+
+	return {
+		update: registerVNode,
+		flush: flush
+	};
+}
+
+
+function update(domNode, oldVirtualNode, newVirtualNode)
+{
+	var patches = diff(oldVirtualNode, newVirtualNode);
+	return applyPatches(domNode, patches);
+}
+
+var rAF =
+	typeof requestAnimationFrame !== 'undefined'
+		? requestAnimationFrame
+		: function(cb) { setTimeout(cb, 1000 / 60); };
+
+
+
 ////////////  RENDER  ////////////
 
 
@@ -416,18 +486,7 @@ function applyAttrsNS(node, nsAttrs, previousNsAttrs)
 
 
 
-////////////  UPDATE  ////////////
-
-
-function update(domNode, oldVirtualNode, newVirtualNode)
-{
-	var patches = diff(oldVirtualNode, newVirtualNode);
-	return applyPatches(domNode, patches);
-}
-
-
-
-// PATCHES
+////////////  PATCHES  ////////////
 
 
 function virtualPatch(type, vNode, patch)
@@ -1116,8 +1175,7 @@ return elm.Native.VirtualDom.values = Elm.Native.VirtualDom.values = {
 	lazy2: F3(lazy2),
 	lazy3: F4(lazy3),
 
-	render: render,
-	update: update
+	renderer: renderer
 };
 
 
