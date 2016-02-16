@@ -1,7 +1,200 @@
+Elm.Native.VirtualDom = {};
+Elm.Native.VirtualDom.make = function(elm) {
+
+elm.Native = elm.Native || {};
+elm.Native.VirtualDom = elm.Native.VirtualDom || {};
+if (elm.Native.VirtualDom.values)
+{
+	return elm.Native.VirtualDom.values;
+}
+
+
+var Json = Elm.Native.Json.make(elm);
+
+var EVENT_KEY = 'EVENT_KEY_05B6CQAHQN';
+var ATTRIBUTE_KEY = 'ATTRUBUTE_KEY_B6K7ITZ7H1';
+var ATTRIBUTE_NS_KEY = 'ATTRIBUTE_NS_KEY_7RD0ZS79BQ';
 
 
 
-// RENDER
+////////////  VIRTUAL DOM NODES  ////////////
+
+
+function text(string)
+{
+	return {
+		type: 'text',
+		text: string
+	};
+}
+
+
+function node(name)
+{
+	return F2(function(propertyList, contents) {
+		return nodeHelp(name, propertyList, contents);
+	});
+}
+
+
+function nodeHelp(name, factList, kidList)
+{
+	var virtualKey, namespace;
+	var style, events, properties, attributes, attributesNS;
+
+	while (factList.ctor !== '[]')
+	{
+		var entry = factList._0;
+		var key = entry.key;
+
+		switch (key)
+		{
+			case ATTRIBUTE_KEY:
+				attributes = attributes || {};
+				attributes[entry.realKey] = entry.value;
+				break;
+
+			case ATTRIBUTE_NS_KEY:
+				attributesNS = attributesNS || {};
+				attributesNS[entry.realKey] = entry.value;
+				break;
+
+			case EVENT_KEY:
+				events = events || {};
+				events['on' + entry.realKey] = entry.value;
+				break;
+
+			case 'style':
+				style = entry.value;
+				break;
+
+			case 'key':
+				virtualKey = entry.value;
+				break;
+
+			case 'namespace':
+				namespace = entry.value;
+				break;
+
+			default:
+				properties = properties || {};
+				properties[key] = entry.value;
+				break;
+		}
+		factList = factList._1;
+	}
+
+	var children = [];
+	var descendantsCount = 0;
+	while (kidList.ctor !== '[]')
+	{
+		var kid = kidList._0;
+		descendantsCount += kid.descendantsCount;
+		children.push(kid);
+		kidList = kidList._1;
+	}
+	descendantsCount += children.length;
+
+	return {
+		type: 'node',
+		tag: tag,
+		style: style,
+		events: events,
+		properties: properties,
+		attributes: attributes,
+		attributesNS: attributesNS,
+		children: children,
+		key: virtualKey,
+		namespace: namespace,
+		descendantsCount: descendantsCount
+	};
+
+}
+
+function thunk(func, args, thunk)
+{
+	return {
+		type: 'thunk',
+		func: func,
+		args: args,
+		thunk: thunk,
+		node: null
+	};
+}
+
+function lazy(fn, a)
+{
+	return thunk(fn, [a], function() {
+		return fn(a);
+	});
+}
+
+function lazy2(fn, a, b)
+{
+	return thunk(fn, [a,b], function() {
+		return A2(fn, a, b);
+	});
+}
+
+function lazy3(fn, a, b, c)
+{
+	return thunk(fn, [a,b,c], function() {
+		return A3(fn, a, b, c);
+	});
+}
+
+
+
+////////////  PROPERTIES AND ATTRIBUTES  ////////////
+
+
+function property(key, value)
+{
+	return {
+		key: key,
+		value: value
+	};
+}
+
+
+function attribute(key, value)
+{
+	return {
+		key: ATTRIBUTE_KEY,
+		realKey: key,
+		value: value
+	};
+}
+
+
+function attributeNS(namespace, key, value)
+{
+	return {
+		key: ATTRIBUTE_NS_KEY,
+		realKey: key,
+		value: {
+			value: value,
+			namespace: namespace
+		}
+	};
+}
+
+
+function on(name, options, decoder)
+{
+	return {
+		key: EVENT_KEY,
+		realKey: name,
+		value: {
+			options: options,
+			decoder: decoder
+		}
+	};
+}
+
+
+
+////////////  RENDER  ////////////
 
 
 function render(vnode, taggerStack)
@@ -47,7 +240,7 @@ function render(vnode, taggerStack)
 
 
 
-// Applying STYLES, PROPERTIES, ATTRIBUTES, and ATTRIBUTES_NS
+// Applying STYLES, EVENTS, PROPERTIES, ATTRIBUTES, and ATTRIBUTES_NS
 //
 // All of these functions use `undefined` to mean "remove all existing things"
 
@@ -75,6 +268,65 @@ function applyStyles(node, styles, previousStyles)
 			node.style[key] = value;
 		}
 	}
+}
+
+
+function applyEvents(node, events, previousEvents)
+{
+	if (!events)
+	{
+		for (var key in previousEvents)
+		{
+			node[key] = null;
+		}
+		return;
+	}
+
+	for (var key in events)
+	{
+		var value = events[key];
+		if (value === undefined)
+		{
+			node[key] = null;
+		}
+		else if (node[key])
+		{
+			node[key].info = value;
+		}
+		else
+		{
+			node[key] = makeEventHandler(value);
+		}
+	}
+}
+
+function makeEventHandler(info)
+{
+	function eventHandler(event)
+	{
+		var info = eventHandler.info;
+
+		var value = A2(Json.runDecoderValue, info.decoder, event);
+
+		if (value.ctor === 'Ok')
+		{
+			var options = info.options;
+			if (options.stopPropagation)
+			{
+				event.stopPropagation();
+			}
+			if (options.preventDefault)
+			{
+				event.preventDefault();
+			}
+			magicReporter(value._0);
+		}
+	};
+
+	eventHandler.info = info;
+
+	return eventHandler;
+
 }
 
 
@@ -157,6 +409,17 @@ function applyAttributesNS(node, nsAttrs, previousNsAttrs)
 
 
 
+////////////  UPDATE  ////////////
+
+
+function update(domNode, oldVirtualNode, newVirtualNode)
+{
+	var patches = diff(oldVirtualNode, newVirtualNode);
+	return applyPatches(domNode, patches);
+}
+
+
+
 // PATCHES
 
 
@@ -196,6 +459,7 @@ function applyPatches(domNode, patchDict)
 	return domNode;
 }
 
+
 function applyPatchesHelp(rootNode, domNode, patches)
 {
 	if (!domNode)
@@ -228,8 +492,8 @@ function applyPatchesHelp(rootNode, domNode, patches)
 
 function getDomNodeDict(domNode, vNode, indexes)
 {
-	// Each node in the DOM is given an index using in-order tree indexing.
-	// These indexes let us skip traversing branches that do not contain any
+	// Each node in the DOM is given an index, assigned in order of the
+	// traversal. These indexes let us skip branches that do not contain any
 	// indexes we care about.
 
 	indexes.sort(ascending);
@@ -237,10 +501,12 @@ function getDomNodeDict(domNode, vNode, indexes)
 	return getDomNodeDictHelp(domNode, vNode, indexes, 0, 0, vNode.descendantsCount, {});
 }
 
+
 function ascending(a, b)
 {
-	return a > b ? 1 : -1;
+	return a - b;
 }
+
 
 function getDomNodeDictHelp(domNode, vNode, indexes, i, low, high, indexToDomNodeDict)
 {
@@ -326,6 +592,7 @@ function applyPatch(vpatch, domNode)
 	}
 }
 
+
 function removeNode(domNode, vNode)
 {
 	var parentNode = domNode.parentNode;
@@ -336,6 +603,7 @@ function removeNode(domNode, vNode)
 	return null;
 }
 
+
 function insertNode(parentNode, vNode)
 {
 	var newNode = render(vNode, null);
@@ -345,6 +613,7 @@ function insertNode(parentNode, vNode)
 	}
 	return parentNode;
 }
+
 
 function updateText(domNode, leftVNode, vText)
 {
@@ -363,6 +632,7 @@ function updateText(domNode, leftVNode, vText)
 	return newNode;
 }
 
+
 function renderAndReplace(domNode, leftVNode, vNode)
 {
 	var parentNode = domNode.parentNode;
@@ -373,6 +643,7 @@ function renderAndReplace(domNode, leftVNode, vNode)
 	}
 	return newNode;
 }
+
 
 function reorderChildren(domNode, moves)
 {
@@ -406,7 +677,7 @@ function reorderChildren(domNode, moves)
 
 
 
-// DIFF two VIRTUAL-DOM nodes
+////////////  DIFF  ////////////
 
 
 function diff(a, b)
@@ -579,6 +850,7 @@ function diffChildren(a, b, patchDict, index)
 	}
 	return apply;
 }
+
 
 // List diff, naive left to right reordering
 function reorder(aChildren, bChildren)
@@ -778,14 +1050,16 @@ function reorder(aChildren, bChildren)
 	};
 }
 
+
 function remove(arr, index, key)
 {
-	arr.splice(index, 1)
+	arr.splice(index, 1);
 	return {
 		from: index,
 		key: key
-	}
+	};
 }
+
 
 function keyIndex(children)
 {
@@ -811,235 +1085,22 @@ function keyIndex(children)
 }
 
 
-// The Elm Stuff
+return elm.Native.VirtualDom.values = Elm.Native.VirtualDom.values = {
+	node: node,
+	text: text,
 
-Elm.Native.VirtualDom = {};
-Elm.Native.VirtualDom.make = function(elm)
-{
-	elm.Native = elm.Native || {};
-	elm.Native.VirtualDom = elm.Native.VirtualDom || {};
-	if (elm.Native.VirtualDom.values)
-	{
-		return elm.Native.VirtualDom.values;
-	}
+	on: F3(on),
+	property: F2(property),
+	attribute: F2(attribute),
+	attributeNS: F3(attributeNS),
 
-	var Json = Elm.Native.Json.make(elm);
+	lazy: F2(lazy),
+	lazy2: F3(lazy2),
+	lazy3: F4(lazy3),
 
-	var ATTRIBUTE_KEY = 'ATTRUBUTE_KEY_B6K7ITZ7H1';
-	var ATTRIBUTE_NS_KEY = 'ATTRIBUTE_NS_KEY_7RD0ZS79BQ';
-
-
-	// VIRTUAL DOM NODES
+	render: render,
+	update: update
+};
 
 
-	// TODO does it make things faster to use `this` instead?
-	function text(string)
-	{
-		return {
-			type: 'text',
-			text: string // TODO does it make things faster to cast this to String? String(string)
-		};
-	}
-
-	function node(name)
-	{
-		return F2(function(propertyList, contents) {
-			return nodeHelp(name, propertyList, contents);
-		});
-	}
-
-	function nodeHelp(name, factList, kidList)
-	{
-		var virtualKey, namespace;
-		var style, properties, attributes, attributesNS;
-
-		while (factList.ctor !== '[]')
-		{
-			var entry = factList._0;
-			var key = entry.key;
-
-			switch (key)
-			{
-				case ATTRIBUTE_KEY:
-					attributes = attributes || {};
-					attributes[entry.attrKey] = entry.value;
-					break;
-
-				case ATTRIBUTE_NS_KEY:
-					attributesNS = attributesNS || {};
-					attributesNS[entry.attrKey] = entry.value;
-					break;
-
-				case 'style':
-					style = entry.value;
-					break;
-
-				case 'key':
-					virtualKey = entry.value;
-					break;
-
-				case 'namespace':
-					namespace = entry.value;
-					break;
-
-				default:
-					properties = properties || {};
-					properties[key] = entry.value;
-					break;
-			}
-			factList = factList._1;
-		}
-
-		var children = [];
-		var descendantsCount = 0;
-		while (kidList.ctor !== '[]')
-		{
-			var kid = kidList._0;
-			descendantsCount += kid.descendantsCount;
-			children.push(kid);
-			kidList = kidList._1;
-		}
-		descendantsCount += children.length;
-
-		return {
-			type: 'node',
-			tag: tag,
-			style: style,
-			properties: properties,
-			attributes: attributes,
-			attributesNS: attributesNS,
-			children: children,
-			key: virtualKey,
-			namespace: namespace,
-			descendantsCount: descendantsCount
-		};
-
-	}
-
-
-
-	// PROPERTIES AND ATTRIBUTES
-
-
-	function property(key, value)
-	{
-		return {
-			key: key,
-			value: value
-		};
-	}
-
-	function attribute(key, value)
-	{
-		return {
-			key: ATTRIBUTE_KEY,
-			attrKey: key,
-			value: value
-		};
-	}
-
-	function attributeNS(namespace, key, value)
-	{
-		return {
-			key: ATTRIBUTE_NS_KEY,
-			attrKey: key,
-			value: {
-				value: value,
-				namespace: namespace
-			}
-		};
-	}
-
-
-
-	// EVENTS
-
-
-	function on(name, options, decoder)
-	{
-		function eventHandler(event)
-		{
-			var value = A2(Json.runDecoderValue, decoder, event);
-			if (value.ctor === 'Ok')
-			{
-				if (options.stopPropagation)
-				{
-					event.stopPropagation();
-				}
-				if (options.preventDefault)
-				{
-					event.preventDefault();
-				}
-				eventHandler.router(value._0);
-			}
-		}
-
-		return property('on' + name, eventHandler);
-	}
-
-
-
-	// UPDATE
-
-
-	function update(domNode, oldVirtualNode, newVirtualNode)
-	{
-		var patches = diff(oldVirtualNode, newVirtualNode);
-		return applyPatches(domNode, patches);
-	}
-
-
-
-	// LAZINESS
-
-
-	function thunk(func, args, thunk)
-	{
-		return {
-			type: 'thunk',
-			func: func,
-			args: args,
-			thunk: thunk,
-			node: null
-		};
-	}
-
-	function lazy(fn, a)
-	{
-		return thunk(fn, [a], function() {
-			return fn(a);
-		});
-	}
-
-	function lazy2(fn, a, b)
-	{
-		return thunk(fn, [a,b], function() {
-			return A2(fn, a, b);
-		});
-	}
-
-	function lazy3(fn, a, b, c)
-	{
-		return thunk(fn, [a,b,c], function() {
-			return A3(fn, a, b, c);
-		});
-	}
-
-
-	return elm.Native.VirtualDom.values = Elm.Native.VirtualDom.values = {
-		node: node,
-		text: text,
-		on: F3(on),
-
-		property: F2(property),
-		attribute: F2(attribute),
-		attributeNS: F3(attributeNS),
-
-		lazy: F2(lazy),
-		lazy2: F3(lazy2),
-		lazy3: F4(lazy3),
-
-		render: render,
-		update: update
-	};
 };
