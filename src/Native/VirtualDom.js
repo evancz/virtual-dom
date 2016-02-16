@@ -111,6 +111,17 @@ function nodeHelp(name, factList, kidList)
 
 }
 
+
+function map(func, node)
+{
+	return {
+		type: 'tagger',
+		func: func,
+		node: node
+	};
+}
+
+
 function thunk(func, args, thunk)
 {
 	return {
@@ -1165,6 +1176,8 @@ function keyIndex(children)
 return elm.Native.VirtualDom.values = Elm.Native.VirtualDom.values = {
 	node: node,
 	text: text,
+
+	map: F2(map),
 
 	on: F3(on),
 	property: F2(property),
