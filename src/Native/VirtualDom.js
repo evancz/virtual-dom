@@ -268,12 +268,6 @@ function renderer(parent, tagger, initialVirtualNode)
 }
 
 
-function update(domNode, oldVirtualNode, newVirtualNode)
-{
-	var patches = diff(oldVirtualNode, newVirtualNode);
-	return applyPatches(domNode, patches);
-}
-
 var rAF =
 	typeof requestAnimationFrame !== 'undefined'
 		? requestAnimationFrame
