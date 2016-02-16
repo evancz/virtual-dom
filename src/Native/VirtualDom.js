@@ -193,6 +193,12 @@ function on(name, options, decoder)
 }
 
 
+function equalEvents(a, b)
+{
+	return a.options === b.options && a.decoder === b.decoder;
+}
+
+
 
 ////////////  RENDER  ////////////
 
@@ -223,9 +229,10 @@ function render(vnode, taggerStack)
 				: document.createElement(vnode.tag);
 
 			applyStyle(node, vnode.styles);
-			applyProperties(node, vnode.properties);
-			applyAttributes(node, vnode.attributes);
-			applyAttributesNS(node, vnode.attributesNS);
+			applyEvents(node, vnode.events);
+			applyProps(node, vnode.properties);
+			applyAttrs(node, vnode.attributes);
+			applyAttrsNS(node, vnode.attributesNS);
 
 			var children = vnode.children;
 
@@ -243,6 +250,7 @@ function render(vnode, taggerStack)
 // Applying STYLES, EVENTS, PROPERTIES, ATTRIBUTES, and ATTRIBUTES_NS
 //
 // All of these functions use `undefined` to mean "remove all existing things"
+// All previousX may be undefined, meaning nothing is set already.
 
 
 function applyStyles(node, styles, previousStyles)
@@ -326,11 +334,10 @@ function makeEventHandler(info)
 	eventHandler.info = info;
 
 	return eventHandler;
-
 }
 
 
-function applyProperties(node, props, previousProps)
+function applyProps(node, props, previousProps)
 {
 	if (!props)
 	{
@@ -356,7 +363,7 @@ function applyProperties(node, props, previousProps)
 }
 
 
-function applyAttributes(node, attrs, previousAttrs)
+function applyAttrs(node, attrs, previousAttrs)
 {
 	if (!attrs)
 	{
@@ -382,7 +389,7 @@ function applyAttributes(node, attrs, previousAttrs)
 }
 
 
-function applyAttributesNS(node, nsAttrs, previousNsAttrs)
+function applyAttrsNS(node, nsAttrs, previousNsAttrs)
 {
 	if (!nsAttrs)
 	{
@@ -433,6 +440,17 @@ function virtualPatch(type, vNode, patch)
 }
 
 
+function patchFacts(applyFacts, facts, previousFacts)
+{
+	return {
+		type: 'patch-facts',
+		applyFacts: applyFacts,
+		facts: facts,
+		previousFacts: previousFacts
+	};
+}
+
+
 
 // TRAVERSE DOM, APPLY PATCHES
 
@@ -472,7 +490,7 @@ function applyPatchesHelp(rootNode, domNode, patches)
 	{
 		for (var i = 0; i < patches.length; i++)
 		{
-			newNode = applyPatch(patches[i], domNode);
+			newNode = applyPatch(domNode, patches[i]);
 			if (domNode === rootNode)
 			{
 				rootNode = newNode;
@@ -481,7 +499,7 @@ function applyPatchesHelp(rootNode, domNode, patches)
 		return rootNode;
 	}
 
-	newNode = applyPatch(patches, domNode);
+	newNode = applyPatch(domNode, patches);
 	if (domNode === rootNode)
 	{
 		rootNode = newNode;
@@ -560,12 +578,9 @@ function getDomNodeDictHelp(domNode, vNode, indexes, i, low, high, indexToDomNod
 // APPLY A PATCH
 
 
-function applyPatch(vpatch, domNode)
+function applyPatch(domNode, patch)
 {
-	var type = vpatch.type
-	var vNode = vpatch.vNode
-	var patch = vpatch.patch
-	switch (type)
+	switch (patch.type)
 	{
 		case 'patch-remove':
 			return removeNode(domNode, vNode);
@@ -583,12 +598,12 @@ function applyPatch(vpatch, domNode)
 			reorderChildren(domNode, patch);
 			return domNode;
 
-		case 'patch-props':
-			applyProperties(domNode, patch, vNode.properties);
-			return domNode
+		case 'patch-facts':
+			patch.applyFacts(domNode, patch.facts, patch.previousFacts);
+			return domNode;
 
 		default:
-			return domNode
+			return domNode;
 	}
 }
 
@@ -750,15 +765,12 @@ function diffHelp(a, b, patchDict, index)
 		case 'node':
 			if (a.type === 'node' && a.tag === b.tag && a.namespace === b.namespace && a.key === b.key)
 			{
-				var stylesPatch = diffFacts(a.styles, b.styles);
-				var propertiesPatch = diffFacts(a.properties, b.properties);
-				var attributesPatch = diffFacts(a.attributes, b.attributes);
-				var attributesNsPatch = diffFacts(a.attributesNS, b.attributesNS);
+				diffFacts(patchDict, index, applyStyles, a.styles, b.styles));
+				diffFacts(patchDict, index, applyEvents, a.events, b.events, equalEvents));
+				diffFacts(patchDict, index, applyProps, a.properties, b.properties));
+				diffFacts(patchDict, index, applyAttrs, a.attributes, b.attributes));
+				diffFacts(patchDict, index, applyAttrsNS, a.attributesNS, b.attributesNS));
 
-				if (propsPatch)
-				{
-					addPatch(patchDict, index, virtualPatch('patch-props', a, propsPatch));
-				}
 				diffChildren(a, b, patchDict, index);
 				return;
 			}
@@ -769,7 +781,7 @@ function diffHelp(a, b, patchDict, index)
 }
 
 
-function diffFacts(a, b)
+function diffFacts(patchDict, index, applyFacts, a, b, specialEq)
 {
 	var diff;
 	for (var aKey in a)
@@ -784,7 +796,7 @@ function diffFacts(a, b)
 		var aValue = a[aKey];
 		var bValue = b[aKey];
 
-		if (aValue === bValue)
+		if (aValue === bValue || (specialEq && specialEq(aValue, bValue)))
 		{
 			continue;
 		}
@@ -801,7 +813,13 @@ function diffFacts(a, b)
 			diff[bKey] = b[bKey];
 		}
 	}
-	return diff;
+
+	if (!diff)
+	{
+		return;
+	}
+
+	addPatch(patchDict, index, patchFacts(applyFacts, diff, a));
 }
 
 
