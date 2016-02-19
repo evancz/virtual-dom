@@ -1,19 +1,10 @@
-Elm.Native.VirtualDom = {};
-Elm.Native.VirtualDom.make = function(elm) {
+//import Native.Json //
 
-elm.Native = elm.Native || {};
-elm.Native.VirtualDom = elm.Native.VirtualDom || {};
-if (elm.Native.VirtualDom.values)
-{
-	return elm.Native.VirtualDom.values;
-}
+var _evancz$virtual_dom$Native_VirtualDom = function() {
 
-
-var Json = Elm.Native.Json.make(elm);
-
-var EVENT_KEY = 'EVENT_KEY_05B6CQAHQN';
-var ATTRIBUTE_KEY = 'ATTRUBUTE_KEY_B6K7ITZ7H1';
-var ATTRIBUTE_NS_KEY = 'ATTRIBUTE_NS_KEY_7RD0ZS79BQ';
+var EVENT_KEY = 'EVENT_KEY';
+var ATTRIBUTE_KEY = 'ATTRUBUTE_KEY';
+var ATTRIBUTE_NS_KEY = 'ATTRIBUTE_NS_KEY';
 
 
 
@@ -246,7 +237,12 @@ function renderer(parent, tagger, initialVirtualNode)
 			case 'PENDING_REQUEST':
 				rAF(updateIfNeeded);
 				state = 'EXTRA_REQUEST';
-				return flush();
+
+				var patches = diff(currentVirtualNode, nextVirtualNode);
+				domNode = applyPatches(domNode, patches);
+				currentVirtualNode = nextVirtualNode;
+
+				return;
 
 			case 'EXTRA_REQUEST':
 				state = 'NO_REQUEST';
@@ -254,17 +250,7 @@ function renderer(parent, tagger, initialVirtualNode)
 		}
 	}
 
-	function flush()
-	{
-		var patches = diff(currentVirtualNode, nextVirtualNode);
-		applyPatches(domNode, patches);
-		currentVirtualNode = nextVirtualNode;
-	}
-
-	return {
-		update: registerVNode,
-		flush: flush
-	};
+	return { update: registerVNode };
 }
 
 
@@ -389,7 +375,7 @@ function makeEventHandler(info)
 	{
 		var info = eventHandler.info;
 
-		var value = A2(Json.runDecoderValue, info.decoder, event);
+		var value = A2(_elm_lang$core$Native_Json.runDecoderValue, info.decoder, event);
 
 		if (value.ctor === 'Ok')
 		{
@@ -829,11 +815,11 @@ function diffHelp(a, b, patchDict, index)
 		case 'node':
 			if (a.type === 'node' && a.tag === b.tag && a.namespace === b.namespace && a.key === b.key)
 			{
-				diffFacts(patchDict, index, applyStyles, a.styles, b.styles));
-				diffFacts(patchDict, index, applyEvents, a.events, b.events, equalEvents));
-				diffFacts(patchDict, index, applyProps, a.properties, b.properties));
-				diffFacts(patchDict, index, applyAttrs, a.attributes, b.attributes));
-				diffFacts(patchDict, index, applyAttrsNS, a.attributesNS, b.attributesNS));
+				diffFacts(patchDict, index, applyStyles, a.styles, b.styles);
+				diffFacts(patchDict, index, applyEvents, a.events, b.events, equalEvents);
+				diffFacts(patchDict, index, applyProps, a.properties, b.properties);
+				diffFacts(patchDict, index, applyAttrs, a.attributes, b.attributes);
+				diffFacts(patchDict, index, applyAttrsNS, a.attributesNS, b.attributesNS);
 
 				diffChildren(a, b, patchDict, index);
 				return;
@@ -1167,7 +1153,7 @@ function keyIndex(children)
 }
 
 
-return elm.Native.VirtualDom.values = Elm.Native.VirtualDom.values = {
+return {
 	node: node,
 	text: text,
 
@@ -1185,5 +1171,4 @@ return elm.Native.VirtualDom.values = Elm.Native.VirtualDom.values = {
 	renderer: renderer
 };
 
-
-};
+}();

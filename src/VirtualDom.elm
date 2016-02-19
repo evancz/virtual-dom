@@ -1,7 +1,6 @@
 module VirtualDom
     ( Node
     , text, node
-    , toElement, fromElement
     , Property, property, attribute, attributeNS
     , on, onWithOptions, Options, defaultOptions
     , map
@@ -28,7 +27,6 @@ that expose more helper functions for HTML or SVG.
 
 -}
 
-import Graphics.Element exposing (Element)
 import Json.Decode as Json
 import Native.VirtualDom
 
@@ -69,6 +67,27 @@ text =
   Native.VirtualDom.text
 
 
+{-| This function is useful when nesting components with [the Elm
+Architecture](https://github.com/evancz/elm-architecture-tutorial/). It lets
+you transform the messages produced by a subtree.
+
+Say you have a node named `button` that produces `()` values when it is
+clicked. To get your model updating properly, you will probably want to tag
+this `()` value like this:
+
+    type Msg = Click | ...
+
+    update msg model =
+      case msg of
+        Click ->
+          ...
+
+    view model =
+      map (\() -> Click) button
+
+So now all the events produced by `button` will be transformed to be of type
+`Msg` so they can be handled by your update function!
+-}
 map : (a -> msg) -> Node a -> Node msg
 map =
   Native.VirtualDom.map
