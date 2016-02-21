@@ -1,11 +1,13 @@
 module VirtualDom
-    ( Node
-    , text, node
-    , Property, property, attribute, attributeNS
-    , on, onWithOptions, Options, defaultOptions
-    , map
-    , lazy, lazy2, lazy3
-    ) where
+  ( Node
+  , text, node
+  , Property, property, attribute, attributeNS
+  , on, onWithOptions, Options, defaultOptions
+  , map
+  , lazy, lazy2, lazy3
+  , program, programWithFlags
+  )
+  where
 
 {-| API to the core diffing algorithm. Can serve as a foundation for libraries
 that expose more helper functions for HTML or SVG.
@@ -24,6 +26,9 @@ that expose more helper functions for HTML or SVG.
 
 # Optimizations
 @docs lazy, lazy2, lazy3
+
+# Programs
+@docs program, programWithFlags
 
 -}
 
@@ -244,4 +249,55 @@ lazy2 =
 lazy3 : (a -> b -> c -> Node msg) -> a -> b -> c -> Node msg
 lazy3 =
   Native.VirtualDom.lazy3
+
+
+
+-- PROGRAMS
+
+
+{-| Create a [`Program`][program] that specifies how your whole app should
+work. Check out [the Elm Architecture Tutorial](tutorial) for a full
+introduction of how to use this in Elm!
+
+[program]: http://package.elm-lang.org/packages/elm-lang/core/latest/Platform#Program
+[tutorial]: https://github.com/evancz/elm-architecture-tutorial
+
+Now say you have defined `MyApp.main : Program Never` in Elm. To initialize it
+from JavaScript, you would say something like this:
+
+```javascript
+var app = Elm.MyApp.fullscreen();
+```
+-}
+program
+  : { init : (model, Cmd msg)
+    , update : msg -> model -> (model, Cmd msg)
+    , subscriptions : model -> Sub msg
+    , view : model -> Node msg
+    }
+  -> Program Never
+program =
+  Native.VirtualDom.program
+
+
+{-| Same as `program` but it lets you demand flags on initialization. So the
+JavaScript code to start a program with flags might look like this:
+
+```javascript
+// Program { userID : String, token : String }
+
+var app = Elm.MyApp.fullscreen({
+    userID: 'Tom',
+    token: '12345'
+});
+-}
+programWithFlags
+  : { init : flags -> (model, Cmd msg)
+    , update : msg -> model -> (model, Cmd msg)
+    , subscriptions : model -> Sub msg
+    , view : model -> Node msg
+    }
+  -> Program flags
+programWithFlags =
+  Native.VirtualDom.program
 

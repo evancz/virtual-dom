@@ -1153,6 +1153,30 @@ function keyIndex(children)
 }
 
 
+
+////////////  PROGRAMS  ////////////
+
+
+function program(details)
+{
+	var init = details.init;
+	return {
+		init: typeof init === 'function' ? init : function() { return init; },
+		update: details.update,
+		subscriptions: details.subscriptions,
+		view: details.view,
+		renderer: renderer
+	};
+}
+
+
+function staticProgram(parent, vnode)
+{
+	var domNode = render(vnode, null);
+	parent.appendChild(domNode);
+}
+
+
 return {
 	node: node,
 	text: text,
@@ -1168,7 +1192,8 @@ return {
 	lazy2: F3(lazy2),
 	lazy3: F4(lazy3),
 
-	renderer: renderer
+	program: program,
+	render: staticProgram
 };
 
 }();
