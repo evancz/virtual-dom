@@ -207,7 +207,9 @@ function equalEvents(a, b)
 
 function renderer(parent, tagger, initialVirtualNode)
 {
-	var domNode = render(initialVirtualNode, tagger);
+	var eventNode = { tagger: tagger, parent: null };
+
+	var domNode = render(initialVirtualNode, eventNode);
 	parent.appendChild(domNode);
 
 	var state = 'NO_REQUEST';
@@ -264,7 +266,7 @@ var rAF =
 ////////////  RENDER  ////////////
 
 
-function render(vnode, taggerStack)
+function render(vnode, eventNode)
 {
 	switch (vnode.type)
 	{
@@ -273,13 +275,16 @@ function render(vnode, taggerStack)
 			{
 				vnode.node = vnode.thunk();
 			}
-			return render(vnode.node, taggerStack);
+			return render(vnode.node, eventNode);
 
 		case 'tagger':
-			return render(vnode.value, {
+			var subEventRoot = {
 				tagger: vnode.tagger,
-				rest: taggerStack
-			});
+				parent: eventNode
+			};
+			var node = render(vnode.value, subEventRoot);
+			node.elm_event_ref = subEventRoot;
+			return node;
 
 		case 'text':
 			return document.createTextNode(vnode.text);
@@ -290,7 +295,7 @@ function render(vnode, taggerStack)
 				: document.createElement(vnode.tag);
 
 			applyStyle(node, vnode.styles);
-			applyEvents(node, vnode.events);
+			applyEvents(node, eventNode, vnode.events);
 			applyProps(node, vnode.properties);
 			applyAttrs(node, vnode.attributes);
 			applyAttrsNS(node, vnode.attributesNS);
@@ -299,7 +304,7 @@ function render(vnode, taggerStack)
 
 			for (var i = 0; i < children.length; i++)
 			{
-				node.appendChild(render(children[i], taggerStack));
+				node.appendChild(render(children[i], eventNode));
 			}
 
 			return node;
@@ -340,7 +345,7 @@ function applyStyles(node, styles, previousStyles)
 }
 
 
-function applyEvents(node, events, previousEvents)
+function applyEvents(node, eventNode, events, previousEvents)
 {
 	if (!events)
 	{
@@ -364,12 +369,12 @@ function applyEvents(node, events, previousEvents)
 		}
 		else
 		{
-			node[key] = makeEventHandler(value);
+			node[key] = makeEventHandler(eventNode, value);
 		}
 	}
 }
 
-function makeEventHandler(info)
+function makeEventHandler(eventNode, info)
 {
 	function eventHandler(event)
 	{
@@ -388,7 +393,13 @@ function makeEventHandler(info)
 			{
 				event.preventDefault();
 			}
-			magicReporter(value._0);
+
+			var message = value._0;
+			while (eventNode)
+			{
+				message = eventNode.tagger(message);
+				eventNode = eventNode.parent;
+			}
 		}
 	};
 
