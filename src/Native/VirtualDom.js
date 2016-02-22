@@ -1054,8 +1054,7 @@ function reorder(aChildren, bChildren)
 							// if the remove didn't put the wanted item in place, we need to insert it
 						if (!simulateItem || simulateItem.key !== wantedItem.key)
 						{
-							inserts.push(
-							{
+							inserts.push({
 								key: wantedItem.key,
 								to: k
 							});
@@ -1068,8 +1067,7 @@ function reorder(aChildren, bChildren)
 					}
 					else
 					{
-						inserts.push(
-						{
+						inserts.push({
 							key: wantedItem.key,
 							to: k
 						});
@@ -1077,8 +1075,7 @@ function reorder(aChildren, bChildren)
 				}
 				else
 				{
-					inserts.push(
-					{
+					inserts.push({
 						key: wantedItem.key,
 						to: k
 					});
