@@ -328,7 +328,7 @@ function applyStyles(node, styles, previousStyles)
 	for (var key in styles)
 	{
 		var value = styles[key];
-		if (value === undefined)
+		if (typeof value === 'undefined')
 		{
 			node.style[key] = '';
 		}
@@ -354,7 +354,7 @@ function applyEvents(node, events, previousEvents)
 	for (var key in events)
 	{
 		var value = events[key];
-		if (value === undefined)
+		if (typeof value === 'undefined')
 		{
 			node[key] = null;
 		}
@@ -412,7 +412,7 @@ function applyProps(node, props, previousProps)
 	for (var key in props)
 	{
 		var value = props[key];
-		if (value === undefined)
+		if (typeof value === 'undefined')
 		{
 			node[key] = typeof previousProps[key] === 'string' ? '' : null;
 		}
@@ -438,7 +438,7 @@ function applyAttrs(node, attrs, previousAttrs)
 	for (var key in attrs)
 	{
 		var value = attrs[key];
-		if (value === undefined)
+		if (typeof value === 'undefined')
 		{
 			node.removeAttribute(key);
 		}
@@ -464,7 +464,7 @@ function applyAttrsNS(node, nsAttrs, previousNsAttrs)
 	for (var key in nsAttrs)
 	{
 		var value = nsAttrs[key];
-		if (value === undefined)
+		if (typeof value === 'undefined')
 		{
 			node.removeAttributeNS(previousNsAttrs[key].namespace, key);
 		}
@@ -831,6 +831,9 @@ function diffHelp(a, b, patchDict, index)
 }
 
 
+// TODO Instead of creating a new diff object, it's possible to just test if
+// there *is* a diff. During the actual patch, do the diff again and make the
+// modifications directly. This way, there's no new allocations. Worth it?
 function diffFacts(patchDict, index, applyFacts, a, b, specialEq)
 {
 	var diff;
@@ -1010,7 +1013,7 @@ function reorder(aChildren, bChildren)
 	{
 		var newItem = bChildren[j];
 		var newKey = newItem.key;
-		if (newKey && aKeys[newKey] === undefined)
+		if (newKey && typeof aKeys[newKey] === 'undefined')
 		{
 			newChildren.push(newItem);
 		}
