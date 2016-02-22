@@ -250,7 +250,7 @@ function renderer(parent, tagger, initialVirtualNode)
 		}
 	}
 
-	return { update: registerVNode };
+	return { update: registerVirtualNode };
 }
 
 
