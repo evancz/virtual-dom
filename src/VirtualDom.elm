@@ -47,15 +47,15 @@ a list of child nodes.
 
     import Json.Encode as Json
 
-    hello : Node
+    hello : Node msg
     hello =
-        node "div" [] [ text "Hello!" ]
+      node "div" [] [ text "Hello!" ]
 
-    greeting : Node
+    greeting : Node msg
     greeting =
-        node "div"
-            [ property "id" (Json.string "greeting") ]
-            [ text "Hello!" ]
+      node "div"
+        [ property "id" (Json.string "greeting") ]
+        [ text "Hello!" ]
 -}
 node : String -> List (Property msg) -> List (Node msg) -> Node msg
 node =
@@ -88,7 +88,7 @@ this `()` value like this:
           ...
 
     view model =
-      map (\() -> Click) button
+      map (\_ -> Click) button
 
 So now all the events produced by `button` will be transformed to be of type
 `Msg` so they can be handled by your update function!
@@ -166,21 +166,22 @@ attributeNS =
   Native.VirtualDom.attributeNS
 
 
+
 -- EVENTS
+
 
 {-| Create a custom event listener.
 
     import Json.Decode as Json
 
-    onClick : Signal.Address a -> Property
-    onClick address =
-        on "click" Json.value (\_ -> Signal.message address ())
+    onClick : msg -> Property msg
+    onClick msg =
+      on "click" (Json.succeed msg)
 
-You first specify the name of the event in the same format as with
-JavaScript’s `addEventListener`. Next you give a JSON decoder, which lets
-you pull information out of the event object. If that decoder is successful,
-the resulting value is given to a function that creates a `Signal.Message`.
-So in our example, we will send `()` to the given `address`.
+You first specify the name of the event in the same format as with JavaScript’s
+`addEventListener`. Next you give a JSON decoder, which lets you pull
+information out of the event object. If the decoder succeeds, it will produce
+a message and route it to your `update` function.
 -}
 on : String -> Json.Decoder msg -> Property msg
 on eventName decoder =
