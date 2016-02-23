@@ -20,15 +20,15 @@ function text(string)
 }
 
 
-function node(name)
+function node(tag)
 {
 	return F2(function(propertyList, contents) {
-		return nodeHelp(name, propertyList, contents);
+		return nodeHelp(tag, propertyList, contents);
 	});
 }
 
 
-function nodeHelp(name, factList, kidList)
+function nodeHelp(tag, factList, kidList)
 {
 	var virtualKey, namespace;
 	var style, events, properties, attributes, attributesNS;
@@ -279,10 +279,10 @@ function render(vnode, eventNode)
 
 		case 'tagger':
 			var subEventRoot = {
-				tagger: vnode.tagger,
+				tagger: vnode.func,
 				parent: eventNode
 			};
-			var node = render(vnode.value, subEventRoot);
+			var node = render(vnode.node, subEventRoot);
 			node.elm_event_ref = subEventRoot;
 			return node;
 
@@ -294,7 +294,7 @@ function render(vnode, eventNode)
 				? document.createElementNS(vnode.namespace, vnode.tag)
 				: document.createElement(vnode.tag);
 
-			applyStyle(node, vnode.styles);
+			applyStyles(node, vnode.styles);
 			applyEvents(node, eventNode, vnode.events);
 			applyProps(node, vnode.properties);
 			applyAttrs(node, vnode.attributes);
