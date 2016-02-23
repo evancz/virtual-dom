@@ -241,7 +241,7 @@ function renderer(parent, tagger, initialVirtualNode)
 				state = 'EXTRA_REQUEST';
 
 				var patches = diff(currentVirtualNode, nextVirtualNode);
-				domNode = applyPatches(domNode, patches);
+				domNode = applyPatches(domNode, currentVirtualNode, patches);
 				currentVirtualNode = nextVirtualNode;
 
 				return;
@@ -501,6 +501,15 @@ function virtualPatch(type, vNode, patch)
 }
 
 
+function patchText(textNode)
+{
+	return {
+		type: 'patch-vtext',
+		textNode: textNode
+	};
+}
+
+
 function patchFacts(applyFacts, facts, previousFacts)
 {
 	return {
@@ -516,7 +525,7 @@ function patchFacts(applyFacts, facts, previousFacts)
 // TRAVERSE DOM, APPLY PATCHES
 
 
-function applyPatches(domNode, patchDict)
+function applyPatches(domNode, oldVirtualNode, patchDict)
 {
 	var patchIndexes = [];
 	for (var key in patchDict)
@@ -528,7 +537,7 @@ function applyPatches(domNode, patchDict)
 	{
 		return domNode;
 	}
-	var indexToDomNodeDict = getDomNodeDict(domNode, patchDict.a, patchIndexes);
+	var indexToDomNodeDict = getDomNodeDict(domNode, oldVirtualNode, patchIndexes);
 
 	for (var i = 0; i < patchIndexes.length; i++)
 	{
@@ -650,7 +659,7 @@ function applyPatch(domNode, patch)
 			return insertNode(domNode, patch);
 
 		case 'patch-vtext':
-			return updateText(domNode, vNode, patch);
+			return updateText(domNode, patch.textNode);
 
 		case 'patch-vnode':
 			return renderAndReplace(domNode, vNode, patch);
@@ -691,16 +700,16 @@ function insertNode(parentNode, vNode)
 }
 
 
-function updateText(domNode, leftVNode, vText)
+function updateText(domNode, vNode)
 {
 	if (domNode.nodeType === 3)
 	{
-		domNode.replaceData(0, domNode.length, vText.text);
+		domNode.replaceData(0, domNode.length, vNode.text);
 		return domNode;
 	}
 
 	var parentNode = domNode.parentNode;
-	var newNode = render(vText, null);
+	var newNode = render(vNode, null);
 	if (parentNode && newNode !== domNode)
 	{
 		parentNode.replaceChild(newNode, domNode);
@@ -814,12 +823,12 @@ function diffHelp(a, b, patchDict, index)
 		case 'text':
 			if (a.type !== 'text')
 			{
-				addPatch(patchDict, index, virtualPatch('patch-vtext', a, b));
+				addPatch(patchDict, index, patchText(b));
 				return;
 			}
 			if (a.text !== b.text)
 			{
-				addPatch(patchDict, index, virtualPatch('patch-vtext', a, b))
+				addPatch(patchDict, index, patchText(b));
 			}
 			return;
 
@@ -838,6 +847,24 @@ function diffHelp(a, b, patchDict, index)
 
 			addPatch(patchDict, index, virtualPatch('patch-vnode', a, b));
 			return;
+	}
+}
+
+
+function addPatch(patchDict, index, patch)
+{
+	var patches = patchDict[index];
+	if (typeof patches === 'undefined')
+	{
+		patchDict[index] = patch;
+	}
+	else if (patches instanceof Array)
+	{
+		patches.push(patch);
+	}
+	else
+	{
+		patchDict[index] = [patches, patch];
 	}
 }
 
@@ -930,7 +957,6 @@ function diffChildren(a, b, patchDict, index)
 		// Reorder nodes last
 		applyPatchesHelp(patchDict, index, virtualPatch('patch-order', a, orderedSet.moves));
 	}
-	return apply;
 }
 
 
