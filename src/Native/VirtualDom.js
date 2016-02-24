@@ -111,11 +111,11 @@ function nodeHelp(tag, factList, kidList)
 }
 
 
-function map(func, node)
+function map(tagger, node)
 {
 	return {
 		type: 'tagger',
-		func: func,
+		tagger: tagger,
 		node: node
 	};
 }
@@ -287,12 +287,12 @@ function render(vnode, eventNode)
 
 		case 'tagger':
 			var subEventRoot = {
-				tagger: vnode.func,
+				tagger: vnode.tagger,
 				parent: eventNode
 			};
-			var node = render(vnode.node, subEventRoot);
-			node.elm_event_ref = subEventRoot;
-			return node;
+			var domNode = render(vnode.node, subEventRoot);
+			domNode.elm_event_ref = subEventRoot;
+			return domNode;
 
 		case 'text':
 			return document.createTextNode(vnode.text);
@@ -545,11 +545,11 @@ function patchInsert(node)
 }
 
 
-function patchTagger(func)
+function patchTagger(tagger)
 {
 	return {
 		type: 'patch-tagger',
-		func: func
+		tagger: tagger
 	};
 }
 
@@ -699,8 +699,8 @@ function applyPatch(domNode, patch)
 			return renderAndReplace(domNode, vNode, patch);
 
 		case 'patch-tagger':
-			// TODO actually swap things
-			throw new Error('swap out the tagger');
+			domNode.elm_event_ref.tagger = patch.tagger;
+			return domNode;
 
 		case 'patch-order':
 			reorderChildren(domNode, patch);
@@ -831,9 +831,9 @@ function diffHelp(a, b, patchDict, index)
 				return;
 			}
 
-			if (a.func !== b.func)
+			if (a.tagger !== b.tagger)
 			{
-				addPatch(patchDict, index, patchTagger(b.func));
+				addPatch(patchDict, index, patchTagger(b.tagger));
 			}
 
 			diffHelp(a.node, b.node, patchDict, index);
