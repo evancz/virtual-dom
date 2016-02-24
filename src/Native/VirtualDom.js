@@ -788,13 +788,18 @@ function diffHelp(a, b, patchDict, index)
 			return;
 
 		case 'tagger':
-			if (a.type === 'tagger')
+			if (a.type !== 'tagger')
 			{
-				throw new Error('TODO patch to swap the details of the relevant eventNode');
+				addPatch(patchDict, index, virtualPatch('patch-vnode', a, b));
 				return;
 			}
 
-			addPatch(patchDict, index, virtualPatch('patch-vnode', a, b));
+			if (a.func !== b.func)
+			{
+				addPatch(patchDict, index, throw new Error('TODO - patch for tagger changes'));
+			}
+
+			diffHelp(a.node, b.node, patchDict, index);
 			return;
 
 		case 'text':
