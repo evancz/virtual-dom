@@ -501,11 +501,11 @@ function virtualPatch(type, vNode, patch)
 }
 
 
-function patchText(textNode)
+function patchText(text)
 {
 	return {
 		type: 'patch-vtext',
-		textNode: textNode
+		text: text
 	};
 }
 
@@ -659,7 +659,8 @@ function applyPatch(domNode, patch)
 			return insertNode(domNode, patch);
 
 		case 'patch-vtext':
-			return updateText(domNode, patch.textNode);
+			domNode.replaceData(0, domNode.length, patch.text);
+			return domNode;
 
 		case 'patch-vnode':
 			return renderAndReplace(domNode, vNode, patch);
@@ -697,24 +698,6 @@ function insertNode(parentNode, vNode)
 		parentNode.appendChild(newNode);
 	}
 	return parentNode;
-}
-
-
-function updateText(domNode, vNode)
-{
-	if (domNode.nodeType === 3)
-	{
-		domNode.replaceData(0, domNode.length, vNode.text);
-		return domNode;
-	}
-
-	var parentNode = domNode.parentNode;
-	var newNode = render(vNode, null);
-	if (parentNode && newNode !== domNode)
-	{
-		parentNode.replaceChild(newNode, domNode);
-	}
-	return newNode;
 }
 
 
@@ -823,13 +806,16 @@ function diffHelp(a, b, patchDict, index)
 		case 'text':
 			if (a.type !== 'text')
 			{
-				addPatch(patchDict, index, patchText(b));
+				addPatch(patchDict, index, virtualPatch('patch-vnode', a, b));
 				return;
 			}
+
 			if (a.text !== b.text)
 			{
-				addPatch(patchDict, index, patchText(b));
+				addPatch(patchDict, index, patchText(b.text));
+				return;
 			}
+
 			return;
 
 		case 'node':
