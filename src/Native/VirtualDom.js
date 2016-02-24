@@ -768,11 +768,7 @@ function diffHelp(a, b, patchDict, index)
 		case 'thunk':
 			if (a.type !== 'thunk')
 			{
-				// TODO if you have thunk vs not-thunk, is it even worth it to diff them?
-				// Cannot really imagine code where `lazy` is added/removed and the
-				// underlying structure did not change in serious ways.
-				b.node = b.thunk();
-				diffHelp(a, b.node, patchDict, index);
+				addPatch(patchDict, index, virtualPatch('patch-vnode', a, b));
 				return;
 			}
 			var aArgs = a.args;
@@ -794,14 +790,12 @@ function diffHelp(a, b, patchDict, index)
 		case 'tagger':
 			if (a.type === 'tagger')
 			{
-				// TODO swap function in "tagger tree"
-				// needs to be done as patch so all changes are synchronized
+				throw new Error('TODO patch to swap the details of the relevant eventNode');
+				return;
 			}
-			else
-			{
-				// TODO replace everithing?
-			}
-			// TODO return
+
+			addPatch(patchDict, index, virtualPatch('patch-vnode', a, b));
+			return;
 
 		case 'text':
 			if (a.type !== 'text')
