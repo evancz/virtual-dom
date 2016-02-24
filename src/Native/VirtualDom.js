@@ -116,7 +116,8 @@ function map(tagger, node)
 	return {
 		type: 'tagger',
 		tagger: tagger,
-		node: node
+		node: node,
+		descendantsCount: node.descendantsCount || 0
 	};
 }
 
