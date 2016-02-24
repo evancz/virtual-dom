@@ -77,11 +77,18 @@ function nodeHelp(tag, factList, kidList)
 
 	var children = [];
 	var descendantsCount = 0;
+	var numKeys = 0;
 	while (kidList.ctor !== '[]')
 	{
 		var kid = kidList._0;
-		descendantsCount += kid.descendantsCount;
+		descendantsCount += (kid.descendantsCount || 0);
 		children.push(kid);
+
+		if (typeof kid.key !== 'undefined')
+		{
+			numKeys++;
+		}
+
 		kidList = kidList._1;
 	}
 	descendantsCount += children.length;
@@ -96,6 +103,7 @@ function nodeHelp(tag, factList, kidList)
 		attributesNS: attributesNS,
 		children: children,
 		key: virtualKey,
+		numKeys: numKeys,
 		namespace: namespace,
 		descendantsCount: descendantsCount
 	};
@@ -395,10 +403,12 @@ function makeEventHandler(eventNode, info)
 			}
 
 			var message = value._0;
-			while (eventNode)
+
+			var currentEventNode = eventNode;
+			while (currentEventNode)
 			{
-				message = eventNode.tagger(message);
-				eventNode = eventNode.parent;
+				message = currentEventNode.tagger(message);
+				currentEventNode = currentEventNode.parent;
 			}
 		}
 	};
@@ -517,6 +527,29 @@ function patchFacts(applyFacts, facts, previousFacts)
 		applyFacts: applyFacts,
 		facts: facts,
 		previousFacts: previousFacts
+	};
+}
+
+
+var patchRemove = {
+	type: 'patch-remove'
+};
+
+
+function patchInsert(node)
+{
+	return {
+		type: 'patch-insert',
+		node: node
+	};
+}
+
+
+function patchTagger(func)
+{
+	return {
+		type: 'patch-tagger',
+		func: func
 	};
 }
 
@@ -653,10 +686,10 @@ function applyPatch(domNode, patch)
 	switch (patch.type)
 	{
 		case 'patch-remove':
-			return removeNode(domNode, vNode);
+			return removeNode(domNode);
 
 		case 'patch-insert':
-			return insertNode(domNode, patch);
+			return insertNode(domNode, patch.node);
 
 		case 'patch-vtext':
 			domNode.replaceData(0, domNode.length, patch.text);
@@ -664,6 +697,10 @@ function applyPatch(domNode, patch)
 
 		case 'patch-vnode':
 			return renderAndReplace(domNode, vNode, patch);
+
+		case 'patch-tagger':
+			// TODO actually swap things
+			throw new Error('swap out the tagger');
 
 		case 'patch-order':
 			reorderChildren(domNode, patch);
@@ -679,7 +716,7 @@ function applyPatch(domNode, patch)
 }
 
 
-function removeNode(domNode, vNode)
+function removeNode(domNode)
 {
 	var parentNode = domNode.parentNode;
 	if (parentNode)
@@ -796,7 +833,7 @@ function diffHelp(a, b, patchDict, index)
 
 			if (a.func !== b.func)
 			{
-				addPatch(patchDict, index, throw new Error('TODO - patch for tagger changes'));
+				addPatch(patchDict, index, patchTagger(b.func));
 			}
 
 			diffHelp(a.node, b.node, patchDict, index);
@@ -821,7 +858,6 @@ function diffHelp(a, b, patchDict, index)
 			if (a.type === 'node' && a.tag === b.tag && a.namespace === b.namespace && a.key === b.key)
 			{
 				diffFacts(patchDict, index, applyStyles, a.styles, b.styles);
-				diffFacts(patchDict, index, applyEvents, a.events, b.events, equalEvents);
 				diffFacts(patchDict, index, applyProps, a.properties, b.properties);
 				diffFacts(patchDict, index, applyAttrs, a.attributes, b.attributes);
 				diffFacts(patchDict, index, applyAttrsNS, a.attributesNS, b.attributesNS);
@@ -857,7 +893,7 @@ function addPatch(patchDict, index, patch)
 // TODO Instead of creating a new diff object, it's possible to just test if
 // there *is* a diff. During the actual patch, do the diff again and make the
 // modifications directly. This way, there's no new allocations. Worth it?
-function diffFacts(patchDict, index, applyFacts, a, b, specialEq)
+function diffFacts(patchDict, index, applyFacts, a, b)
 {
 	var diff;
 	for (var aKey in a)
@@ -872,7 +908,7 @@ function diffFacts(patchDict, index, applyFacts, a, b, specialEq)
 		var aValue = a[aKey];
 		var bValue = b[aKey];
 
-		if (aValue === bValue || (specialEq && specialEq(aValue, bValue)))
+		if (aValue === bValue)
 		{
 			continue;
 		}
@@ -899,279 +935,53 @@ function diffFacts(patchDict, index, applyFacts, a, b, specialEq)
 }
 
 
-function diffChildren(a, b, patchDict, index)
+function diffChildren(aParent, bParent, patchDict, rootIndex)
 {
-	var aChildren = a.children;
-	var orderedSet = reorder(aChildren, b.children);
-	var bChildren = orderedSet.children;
+	var aChildren = aParent.children;
+	var bChildren = bParent.children;
+
 	var aLen = aChildren.length;
 	var bLen = bChildren.length;
-	var len = aLen > bLen ? aLen : bLen;
-	for (var i = 0; i < len; i++)
+
+	var aNumKeys = aParent.numKeys;
+	var bNumKeys = aParent.numKeys;
+
+	if (aNumKeys === 0 || bNumKeys === 0)
 	{
-		var leftNode = aChildren[i];
-		var rightNode = bChildren[i];
-		index += 1;
+		// TODO consider the case where A has keys and B does not.
+		// Perhaps it makes sense to remove keyed nodes as you see them,
+		// knowing that they will not match with anything on the other
+		// side. This may give you cleaner diffs on the remaining nodes.
+		// May be worthwhile to break this case out, even if it is quite
+		// rare in practice.
 
-		// compare nodes
-		if (!leftNode)
+		var index = rootIndex;
+
+		var i = 0;
+		var minLen = aLen > bLen ? aLen : bLen;
+		for (; i < minLen; i++)
 		{
-			if (rightNode)
-			{
-				// Excess nodes in b need to be added
-				applyPatchesHelp(patchDict, index, virtualPatch('patch-insert', null, rightNode));
-			}
+			index++;
+			var aChild = aChildren[i];
+			diffHelp(aChild, bChildren[i], patchDict, index);
+			index += aChild.descendantsCount || 0;
 		}
-		else if (!rightNode)
+		for (; i < aLen; i++)
 		{
-			addPatch(patchDict, index, virtualPatch('patch-remove', leftNode, rightNode));
+			index++;
+			addPatch(patchDict, index, patchRemove);
+			index += aChildren[i].descendantsCount || 0;
 		}
-		else
+		for (; i < bLen; i++)
 		{
-			diffHelp(leftNode, rightNode, patchDict, index);
-		}
-
-		// bump index as far as necessary
-		if (leftNode.type === 'node' && leftNode.descendantsCount)
-		{
-			index += leftNode.descendantsCount;
-		}
-	}
-	if (orderedSet.moves)
-	{
-		// Reorder nodes last
-		applyPatchesHelp(patchDict, index, virtualPatch('patch-order', a, orderedSet.moves));
-	}
-}
-
-
-// List diff, naive left to right reordering
-function reorder(aChildren, bChildren)
-{
-	// TODO opportunity with keyIndex to allocate less.
-	// Take two passes over children. First to count/gather keys.
-	// Second pass only if some keys are found.
-	//
-	// If no keys, no new allocations.
-	// If keys, allocate with new Array(N) instead of push.
-
-	// O(M) time, O(M) memory
-	var bChildIndex = keyIndex(bChildren)
-	var bKeys = bChildIndex.keys
-	var bFree = bChildIndex.free
-	if (bFree.length === bChildren.length)
-	{
-		return {
-			children: bChildren,
-			moves: null
-		}
-	}
-	// O(N) time, O(N) memory
-	var aChildIndex = keyIndex(aChildren)
-	var aKeys = aChildIndex.keys
-	var aFree = aChildIndex.free
-	if (aFree.length === aChildren.length)
-	{
-		return {
-			children: bChildren,
-			moves: null
+			addPatch(patchDict, rootIndex, patchInsert(bChildren[i]));
 		}
 	}
 
-	// O(MAX(N, M)) memory
-	var newChildren = [];
-	var freeIndex = 0;
-	var freeCount = bFree.length;
-	var deletedItems = 0;
-
-	// Iterate through a and match a node in b
-	// O(N) time,
-	for (var i = 0; i < aChildren.length; i++)
+	if (aNumKeys === aLen && bNumKeys == bLen)
 	{
-		var aItem = aChildren[i];
-		var aKey = aItem.key;
-		if (aKey)
-		{
-			if (bKeys[aKey] !== undefined)
-			{
-				// Match up the old keys
-				newChildren.push(bChildren[bKeys[aKey]]);
-			}
-			else
-			{
-				// Remove old keyed items
-				deletedItems++;
-				newChildren.push(null);
-			}
-		}
-		else
-		{
-			// Match the item in a with the next free item in b
-			if (freeIndex < freeCount)
-			{
-				newChildren.push(bChildren[bFree[freeIndex++]]);
-			}
-			else
-			{
-				// There are no free items in b to match with
-				// the free items in a, so the extra free nodes
-				// are deleted.
-				deletedItems++;
-				newChildren.push(null);
-			}
-		}
+
 	}
-
-	// Iterate through b and append any new keys in O(M) time
-	// (1) Add any new keyed items or (2) add any leftover non-keyed items
-	// We are adding new items to the end and then sorting them
-	// in place. In future we should insert new items in place.
-
-	var lastFreeIndex = freeIndex >= bFree.length ? bChildren.length : bFree[freeIndex];
-
-	var j = 0;
-
-	for ( ; j < lastFreeIndex; j++)
-	{
-		var newItem = bChildren[j];
-		var newKey = newItem.key;
-		if (newKey && typeof aKeys[newKey] === 'undefined')
-		{
-			newChildren.push(newItem);
-		}
-	}
-	for ( ; j < bChildren.length; j++)
-	{
-		newChildren.push(bChildren[j]);
-	}
-
-	var simulate = newChildren.slice();
-	var simulateIndex = 0;
-	var removes = [];
-	var inserts = [];
-	var simulateItem;
-	for (var k = 0; k < bChildren.length;)
-	{
-		var wantedItem = bChildren[k];
-		simulateItem = simulate[simulateIndex];
-
-		// remove items
-		while (simulateItem === null && simulate.length)
-		{
-			removes.push(remove(simulate, simulateIndex, null));
-			simulateItem = simulate[simulateIndex];
-		}
-		if (!simulateItem || simulateItem.key !== wantedItem.key)
-		{
-			// if we need a key in this position...
-			if (wantedItem.key)
-			{
-				if (simulateItem && simulateItem.key)
-				{
-					// if an insert doesn't put this key in place, it needs to move
-					if (bKeys[simulateItem.key] !== k + 1)
-					{
-						removes.push(remove(simulate, simulateIndex, simulateItem.key));
-						simulateItem = simulate[simulateIndex];
-							// if the remove didn't put the wanted item in place, we need to insert it
-						if (!simulateItem || simulateItem.key !== wantedItem.key)
-						{
-							inserts.push({
-								key: wantedItem.key,
-								to: k
-							});
-						}
-						// items are matching, so skip ahead
-						else
-						{
-							simulateIndex++;
-						}
-					}
-					else
-					{
-						inserts.push({
-							key: wantedItem.key,
-							to: k
-						});
-					}
-				}
-				else
-				{
-					inserts.push({
-						key: wantedItem.key,
-						to: k
-					});
-				}
-				k++;
-			}
-			// a key in simulate has no matching wanted key, remove it
-			else if (simulateItem && simulateItem.key)
-			{
-				removes.push(remove(simulate, simulateIndex, simulateItem.key));
-			}
-		}
-		else
-		{
-			simulateIndex++;
-			k++;
-		}
-	}
-	// remove all the remaining nodes from simulate
-	while (simulateIndex < simulate.length)
-	{
-		simulateItem = simulate[simulateIndex];
-		removes.push(remove(simulate, simulateIndex, simulateItem && simulateItem.key));
-	}
-	// If the only moves we have are deletes then we can just
-	// let the delete patch remove these items.
-	if (removes.length === deletedItems && !inserts.length)
-	{
-		return {
-			children: newChildren,
-			moves: null
-		};
-	}
-	return {
-		children: newChildren,
-		moves: {
-			removes: removes,
-			inserts: inserts
-		}
-	};
-}
-
-
-function remove(arr, index, key)
-{
-	arr.splice(index, 1);
-	return {
-		from: index,
-		key: key
-	};
-}
-
-
-function keyIndex(children)
-{
-	var keys = {};
-	var free = [];
-	var length = children.length;
-	for (var i = 0; i < length; i++)
-	{
-		var child = children[i];
-		if (child.key)
-		{
-			keys[child.key] = i;
-		}
-		else
-		{
-			free.push(i);
-		}
-	}
-	return {
-		keys: keys,
-		free: free
-	};
 }
 
 
