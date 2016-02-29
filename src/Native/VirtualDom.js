@@ -59,10 +59,6 @@ function nodeHelp(tag, factList, kidList)
 				style = entry.value;
 				break;
 
-			case 'key':
-				virtualKey = entry.value;
-				break;
-
 			case 'namespace':
 				namespace = entry.value;
 				break;
@@ -77,18 +73,11 @@ function nodeHelp(tag, factList, kidList)
 
 	var children = [];
 	var descendantsCount = 0;
-	var numKeys = 0;
 	while (kidList.ctor !== '[]')
 	{
 		var kid = kidList._0;
 		descendantsCount += (kid.descendantsCount || 0);
 		children.push(kid);
-
-		if (typeof kid.key !== 'undefined')
-		{
-			numKeys++;
-		}
-
 		kidList = kidList._1;
 	}
 	descendantsCount += children.length;
@@ -102,8 +91,6 @@ function nodeHelp(tag, factList, kidList)
 		attributes: attributes,
 		attributesNS: attributesNS,
 		children: children,
-		key: virtualKey,
-		numKeys: numKeys,
 		namespace: namespace,
 		descendantsCount: descendantsCount
 	};
@@ -595,7 +582,7 @@ function diffHelp(a, b, patches, index)
 		case 'node':
 			// Bail if obvious indicators have changed. Implies more serious
 			// structural changes such that it's not worth it to diff.
-			if (a.tag !== b.tag || a.namespace !== b.namespace || a.key !== b.key)
+			if (a.tag !== b.tag || a.namespace !== b.namespace)
 			{
 				patches.push({
 					index: index,
@@ -698,53 +685,37 @@ function diffChildren(aParent, bParent, patches, rootIndex)
 	var aLen = aChildren.length;
 	var bLen = bChildren.length;
 
-	var aNumKeys = aParent.numKeys;
-	var bNumKeys = aParent.numKeys;
+	// FIGURE OUT IF THERE ARE INSERTS OR REMOVALS
 
-	if (aNumKeys === 0 || bNumKeys === 0)
+	if (aLen > bLen)
 	{
-		// TODO consider the case where A has keys and B does not.
-		// Perhaps it makes sense to remove keyed nodes as you see them,
-		// knowing that they will not match with anything on the other
-		// side. This may give you cleaner diffs on the remaining nodes.
-		// May be worthwhile to break this case out, even if it is quite
-		// rare in practice.
-
-		var index = rootIndex;
-
-		if (aLen > bLen)
-		{
-			patches.push({
-				index: rootIndex,
-				type: 'p-remove',
-				data: bLen - aLen,
-				domNode: null
-			});
-		}
-		else if (aLen < bLen)
-		{
-			patches.push({
-				index: rootIndex,
-				type: 'p-insert',
-				data: bChildren.slice(aLen),
-				domNode: null
-			});
-		}
-
-		var i = 0;
-		var minLen = aLen > bLen ? aLen : bLen;
-		for (; i < minLen; i++)
-		{
-			index++;
-			var aChild = aChildren[i];
-			diffHelp(aChild, bChildren[i], patches, index);
-			index += aChild.descendantsCount || 0;
-		}
+		patches.push({
+			index: rootIndex,
+			type: 'p-remove',
+			data: bLen - aLen,
+			domNode: null
+		});
+	}
+	else if (aLen < bLen)
+	{
+		patches.push({
+			index: rootIndex,
+			type: 'p-insert',
+			data: bChildren.slice(aLen),
+			domNode: null
+		});
 	}
 
-	if (aNumKeys === aLen && bNumKeys == bLen)
-	{
+	// PAIRWISE DIFF EVERYTHING ELSE
 
+	var index = rootIndex;
+	var minLen = aLen > bLen ? aLen : bLen;
+	for (var i = 0; i < minLen; i++)
+	{
+		index++;
+		var aChild = aChildren[i];
+		diffHelp(aChild, bChildren[i], patches, index);
+		index += aChild.descendantsCount || 0;
 	}
 }
 
@@ -828,8 +799,6 @@ function addDomNodesHelp(domNode, vNode, patches, i, low, high, eventNode)
 
 function applyPatches(rootDomNode, oldVirtualNode, patches, eventNode)
 {
-	console.log(patches);
-
 	if (patches.length === 0)
 	{
 		return rootDomNode;
@@ -912,37 +881,6 @@ function applyFacts(domNode, facts)
 	applyProps(domNode, facts.props, vNode.properties);
 	applyAttrs(domNode, facts.attrs);
 	applyAttrsNS(domNode, facts.attrsNs, vNode.attributesNS);
-}
-
-
-function reorderChildren(domNode, moves)
-{
-	var childNodes = domNode.childNodes;
-	var keyMap = {};
-	var node;
-	var remove;
-	var insert;
-
-	for (var i = 0; i < moves.removes.length; i++)
-	{
-		remove = moves.removes[i];
-		node = childNodes[remove.from];
-		if (remove.key)
-		{
-			keyMap[remove.key] = node;
-		}
-		domNode.removeChild(node);
-	}
-
-	var length = childNodes.length;
-
-	for (var j = 0; j < moves.inserts.length; j++)
-	{
-		insert = moves.inserts[j];
-		node = keyMap[insert.key];
-		// this is the weirdest bug i've ever seen in webkit
-		domNode.insertBefore(node, insert.to >= length++ ? null : childNodes[insert.to]);
-	}
 }
 
 
