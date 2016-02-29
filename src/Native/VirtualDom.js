@@ -2,9 +2,9 @@
 
 var _evancz$virtual_dom$Native_VirtualDom = function() {
 
-var EVENT_KEY = 'EVENT_KEY';
-var ATTRIBUTE_KEY = 'ATTRUBUTE_KEY';
-var ATTRIBUTE_NS_KEY = 'ATTRIBUTE_NS_KEY';
+var EVENT_KEY = 'EVENT';
+var ATTRIBUTE_KEY = 'ATTR';
+var ATTRIBUTE_NS_KEY = 'ATTR_NS';
 
 
 
@@ -117,7 +117,7 @@ function map(tagger, node)
 		type: 'tagger',
 		tagger: tagger,
 		node: node,
-		descendantsCount: node.descendantsCount || 0
+		descendantsCount: 1 + (node.descendantsCount || 0)
 	};
 }
 
@@ -206,7 +206,14 @@ function on(name, options, decoder)
 
 function equalEvents(a, b)
 {
-	return a.options === b.options && a.decoder === b.decoder;
+	if (!a.options === b.options)
+	{
+		if (a.stopPropagation !== b.stopPropagation || a.preventDefault !== b.preventDefault)
+		{
+			return false;
+		}
+	}
+	return _elm_lang$core$Native_Json.equality(a.decoder, b.decoder);
 }
 
 
@@ -250,7 +257,7 @@ function renderer(parent, tagger, initialVirtualNode)
 				state = 'EXTRA_REQUEST';
 
 				var patches = diff(currentVirtualNode, nextVirtualNode);
-				domNode = applyPatches(domNode, currentVirtualNode, patches);
+				domNode = applyPatches(domNode, currentVirtualNode, patches, eventNode);
 				currentVirtualNode = nextVirtualNode;
 
 				return;
@@ -292,7 +299,7 @@ function render(vnode, eventNode)
 				parent: eventNode
 			};
 			var domNode = render(vnode.node, subEventRoot);
-			domNode.elm_event_ref = subEventRoot;
+			domNode.elm_event_node_ref = subEventRoot;
 			return domNode;
 
 		case 'text':
@@ -304,7 +311,7 @@ function render(vnode, eventNode)
 				: document.createElement(vnode.tag);
 
 			applyStyles(node, vnode.styles);
-			applyEvents(node, eventNode, vnode.events);
+			applyEvents(node, vnode.events, eventNode);
 			applyProps(node, vnode.properties);
 			applyAttrs(node, vnode.attributes);
 			applyAttrsNS(node, vnode.attributesNS);
@@ -323,62 +330,34 @@ function render(vnode, eventNode)
 
 
 // Applying STYLES, EVENTS, PROPERTIES, ATTRIBUTES, and ATTRIBUTES_NS
-//
-// All of these functions use `undefined` to mean "remove all existing things"
-// All previousX may be undefined, meaning nothing is set already.
 
 
-function applyStyles(node, styles, previousStyles)
+function applyStyles(domNode, styles)
 {
-	if (!styles)
-	{
-		for (var key in previousStyles)
-		{
-			node.style[key] = '';
-		}
-		return;
-	}
-
 	for (var key in styles)
 	{
 		var value = styles[key];
-		if (typeof value === 'undefined')
-		{
-			node.style[key] = '';
-		}
-		else
-		{
-			node.style[key] = value;
-		}
+		domNode.style[key] = typeof value === 'undefined' ? '' : value;
 	}
 }
 
 
-function applyEvents(node, eventNode, events, previousEvents)
+function applyEvents(domNode, events, eventNode)
 {
-	if (!events)
-	{
-		for (var key in previousEvents)
-		{
-			node[key] = null;
-		}
-		return;
-	}
-
 	for (var key in events)
 	{
 		var value = events[key];
 		if (typeof value === 'undefined')
 		{
-			node[key] = null;
+			domNode[key] = null;
 		}
-		else if (node[key])
+		else if (domNode[key])
 		{
-			node[key].info = value;
+			domNode[key].info = value;
 		}
 		else
 		{
-			node[key] = makeEventHandler(eventNode, value);
+			domNode[key] = makeEventHandler(eventNode, value);
 		}
 	}
 }
@@ -389,7 +368,7 @@ function makeEventHandler(eventNode, info)
 	{
 		var info = eventHandler.info;
 
-		var value = A2(_elm_lang$core$Native_Json.runDecoderValue, info.decoder, event);
+		var value = A2(_elm_lang$core$Native_Json.run, info.decoder, event);
 
 		if (value.ctor === 'Ok')
 		{
@@ -408,7 +387,18 @@ function makeEventHandler(eventNode, info)
 			var currentEventNode = eventNode;
 			while (currentEventNode)
 			{
-				message = currentEventNode.tagger(message);
+				var tagger = currentEventNode.tagger;
+				if (typeof tagger === 'function')
+				{
+					message = tagger(message);
+				}
+				else
+				{
+					for (var i = tagger.length; i--; )
+					{
+						message = tagger[i](message);
+					}
+				}
 				currentEventNode = currentEventNode.parent;
 			}
 		}
@@ -420,79 +410,48 @@ function makeEventHandler(eventNode, info)
 }
 
 
-function applyProps(node, props, previousProps)
+function applyProps(domNode, props, previousProps)
 {
-	if (!props)
-	{
-		for (var key in previousProps)
-		{
-			node[key] = typeof previousProps[key] === 'string' ? '' : null;
-		}
-		return;
-	}
-
 	for (var key in props)
 	{
 		var value = props[key];
-		if (typeof value === 'undefined')
-		{
-			node[key] = typeof previousProps[key] === 'string' ? '' : null;
-		}
-		else
-		{
-			node[key] = value;
-		}
+		domNode[key] =
+			typeof value === 'undefined'
+				? (typeof previousProps[key] === 'string' ? '' : null)
+				: value;
 	}
 }
 
 
-function applyAttrs(node, attrs, previousAttrs)
+function applyAttrs(domNode, attrs)
 {
-	if (!attrs)
-	{
-		for (var key in previousAttrs)
-		{
-			node.removeAttribute(key);
-		}
-		return;
-	}
-
 	for (var key in attrs)
 	{
 		var value = attrs[key];
 		if (typeof value === 'undefined')
 		{
-			node.removeAttribute(key);
+			domNode.removeAttribute(key);
 		}
 		else
 		{
-			node.setAttribute(key, value);
+			domNode.setAttribute(key, value);
 		}
 	}
 }
 
 
-function applyAttrsNS(node, nsAttrs, previousNsAttrs)
+function applyAttrsNS(domNode, nsAttrs, previousNsAttrs)
 {
-	if (!nsAttrs)
-	{
-		for (var key in previousNsAttrs)
-		{
-			node.removeAttributeNS(previousNsAttrs[key].namespace, key);
-		}
-		return;
-	}
-
 	for (var key in nsAttrs)
 	{
 		var value = nsAttrs[key];
 		if (typeof value === 'undefined')
 		{
-			node.removeAttributeNS(previousNsAttrs[key].namespace, key);
+			domNode.removeAttributeNS(previousNsAttrs[key].namespace, key);
 		}
 		else
 		{
-			node.setAttributeNS(value.namespace, key, value.value);
+			domNode.setAttributeNS(value.namespace, key, value.value);
 		}
 	}
 }
@@ -502,217 +461,448 @@ function applyAttrsNS(node, nsAttrs, previousNsAttrs)
 ////////////  PATCHES  ////////////
 
 
-function virtualPatch(type, vNode, patch)
+function patchFacts(type)
 {
-	return {
-		type: type,
-		vNode: vNode,
-		patch: patch
-	};
-}
-
-
-function patchText(text)
-{
-	return {
-		type: 'patch-vtext',
-		text: text
-	};
-}
-
-
-function patchFacts(applyFacts, facts, previousFacts)
-{
-	return {
-		type: 'patch-facts',
-		applyFacts: applyFacts,
-		facts: facts,
-		previousFacts: previousFacts
-	};
-}
-
-
-var patchRemove = {
-	type: 'patch-remove'
-};
-
-
-function patchInsert(node)
-{
-	return {
-		type: 'patch-insert',
-		node: node
-	};
-}
-
-
-function patchTagger(tagger)
-{
-	return {
-		type: 'patch-tagger',
-		tagger: tagger
-	};
-}
-
-
-
-// TRAVERSE DOM, APPLY PATCHES
-
-
-function applyPatches(domNode, oldVirtualNode, patchDict)
-{
-	var patchIndexes = [];
-	for (var key in patchDict)
+	return function(diff, prev)
 	{
-		patchIndexes.push(Number(key));
+		return {
+			type: type,
+			diff: diff,
+			prev: prev
+		};
+	};
+}
+
+var patchStyles = patchFacts('p-styles');
+var patchEvents = patchFacts('p-events');
+var patchProps = patchFacts('p-props');
+var patchAttrs = patchFacts('p-attrs');
+var patchAttrsNS = patchFacts('p-attrs-ns');
+
+
+
+////////////  DIFF  ////////////
+
+
+function diff(a, b)
+{
+	var patches = [];
+	diffHelp(a, b, patches, 0);
+	return patches;
+}
+
+
+function diffHelp(a, b, patches, index)
+{
+	if (a === b)
+	{
+		return;
 	}
 
-	if (patchIndexes.length === 0)
-	{
-		return domNode;
-	}
-	var indexToDomNodeDict = getDomNodeDict(domNode, oldVirtualNode, patchIndexes);
+	var aType = a.type;
+	var bType = b.type;
 
-	for (var i = 0; i < patchIndexes.length; i++)
+	// Bail if you run into different types of nodes. Implies that the
+	// structure has changed significantly and it's not worth a diff.
+	if (aType !== bType)
 	{
-		var index = patchIndexes[i];
-		domNode = applyPatchesHelp(domNode, indexToDomNodeDict[index], patchDict[index]);
-	}
-	return domNode;
-}
-
-
-function applyPatchesHelp(rootNode, domNode, patches)
-{
-	if (!domNode)
-	{
-		return rootNode;
+		patches.push({
+			index: index,
+			type: 'p-redraw',
+			data: b,
+			domNode: null
+		});
+		return;
 	}
 
-	var newNode;
-	if (patches instanceof Array)
+	// Now we know that both nodes are the same type.
+	switch (bType)
 	{
-		for (var i = 0; i < patches.length; i++)
-		{
-			newNode = applyPatch(domNode, patches[i]);
-			if (domNode === rootNode)
+		case 'thunk':
+			var aArgs = a.args;
+			var bArgs = b.args;
+			var i = aArgs.length;
+			var same = a.func === b.func && i === bArgs.length;
+			while (same && i--)
 			{
-				rootNode = newNode;
+				same = aArgs[i] === bArgs[i];
 			}
+			if (same)
+			{
+				b.node = a.node;
+				return;
+			}
+			b.node = b.thunk();
+			var subPatches = [];
+			diffHelp(a.node, b.node, subPatches, 0);
+			patches.push({
+				index: index,
+				type: 'p-thunk',
+				data: subPatches,
+				domNode: null
+			});
+			return;
+
+		case 'tagger':
+			// gather nested taggers
+			var aTaggers = a.tagger;
+			var bTaggers = b.tagger;
+			var nesting = false;
+
+			var aSubNode = a.node;
+			while (aSubNode.type === 'tagger')
+			{
+				nesting = true;
+
+				typeof aTaggers !== 'object'
+					? aTaggers = [aTaggers, aSubNode.tagger]
+					: aTaggers.push(aSubNode.tagger);
+
+				aSubNode = aSubNode.node;
+			}
+
+			var bSubNode = b.node;
+			while (bSubNode.type === 'tagger')
+			{
+				nesting = true;
+
+				typeof bTaggers !== 'object'
+					? bTaggers = [bTaggers, bSubNode.tagger]
+					: bTaggers.push(bSubNode.tagger);
+
+				bSubNode = bSubNode.node;
+			}
+
+			// Just bail if different numbers of taggers. This implies the
+			// structure of the virtual DOM has changed.
+			if (nesting && aTaggers.length !== bTaggers.length)
+			{
+				patches.push({
+					index: index,
+					type: 'p-redraw',
+					data: b,
+					domNode: null
+				});
+				return;
+			}
+
+			// check if taggers are "the same"
+			if (nesting ? !pairwiseRefEqual(aTaggers, bTaggers) : aTaggers !== bTaggers)
+			{
+				patches.push({
+					 index: index,
+					 type: 'p-tagger',
+					 data: bTaggers,
+					 domNode: null
+				});
+			}
+
+			// diff everything below the taggers
+			diffHelp(aSubNode, bSubNode, patches, index + 1);
+			return;
+
+		case 'text':
+			if (a.text !== b.text)
+			{
+				patches.push({
+					index: index,
+					type: 'p-text',
+					data: b.text,
+					domNode: null
+				});
+				return;
+			}
+
+			return;
+
+		case 'node':
+			// Bail if obvious indicators have changed. Implies more serious
+			// structural changes such that it's not worth it to diff.
+			if (a.tag !== b.tag || a.namespace !== b.namespace || a.key !== b.key)
+			{
+				patches.push({
+					index: index,
+					type: 'p-redraw',
+					data: b,
+					domNode: null
+				});
+				return;
+			}
+
+			var stylesDiff = diffFacts(a.styles, b.styles);
+			var eventsDiff = diffFacts(a.events, b.events, equalEvents);
+			var propsDiff = diffFacts(a.properties, b.properties);
+			var attrsDiff = diffFacts(a.attributes, b.attributes);
+			var attrsNsDiff = diffFacts(a.attributesNS, b.attributesNS);
+
+			if (stylesDiff || eventsDiff || propsDiff || attrsDiff || attrsNsDiff)
+			{
+				patches.push({
+					index: index,
+					type: 'p-facts',
+					data: {
+						oldVirtualNode: a,
+						styles: stylesDiff,
+						events: eventsDiff,
+						props: propsDiff,
+						attrs: attrsDiff,
+						attrsNs: attrsNsDiff
+					},
+					domNode: null
+				});
+			}
+
+			diffChildren(a, b, patches, index);
+			return;
+	}
+}
+
+
+// assumes the incoming arrays are the same length
+function pairwiseRefEqual(as, bs)
+{
+	for (var i = 0; i < as.length; i++)
+	{
+		if (as[i] !== bs[i])
+		{
+			return false;
 		}
-		return rootNode;
 	}
 
-	newNode = applyPatch(domNode, patches);
-	if (domNode === rootNode)
-	{
-		rootNode = newNode;
-	}
-	return rootNode;
+	return true;
 }
 
 
-function getDomNodeDict(domNode, vNode, indexes)
+// TODO Instead of creating a new diff object, it's possible to just test if
+// there *is* a diff. During the actual patch, do the diff again and make the
+// modifications directly. This way, there's no new allocations. Worth it?
+function diffFacts(a, b, specialEq)
 {
-	// Each node in the DOM is given an index, assigned in order of the
-	// traversal. These indexes let us skip branches that do not contain any
-	// indexes we care about.
-
-	indexes.sort(ascending);
-
-	return getDomNodeDictHelp(domNode, vNode, indexes, 0, 0, vNode.descendantsCount, {});
-}
-
-
-function ascending(a, b)
-{
-	return a - b;
-}
-
-
-function getDomNodeDictHelp(domNode, vNode, indexes, i, low, high, indexToDomNodeDict)
-{
-	var index = indexes[i];
-
-	if (index > high)
+	var diff;
+	for (var aKey in a)
 	{
-		return indexToDomNodeDict;
+		if (!(aKey in b))
+		{
+			diff = diff || {};
+			diff[aKey] = undefined;
+			continue;
+		}
+
+		var aValue = a[aKey];
+		var bValue = b[aKey];
+
+		if (aValue === bValue || (specialEq && specialEq(aValue, bValue)))
+		{
+			continue;
+		}
+
+		diff = diff || {};
+		diff[aKey] = bValue;
 	}
 
-	// are we at the desired index? If so, add it to the dictionary.
-	if (index === low)
+	for (var bKey in b)
 	{
-		indexToDomNodeDict[index] = domNode;
+		if (!(bKey in a))
+		{
+			diff = diff || {};
+			diff[bKey] = b[bKey];
+		}
+	}
+
+	return diff;
+}
+
+
+function diffChildren(aParent, bParent, patches, rootIndex)
+{
+	var aChildren = aParent.children;
+	var bChildren = bParent.children;
+
+	var aLen = aChildren.length;
+	var bLen = bChildren.length;
+
+	var aNumKeys = aParent.numKeys;
+	var bNumKeys = aParent.numKeys;
+
+	if (aNumKeys === 0 || bNumKeys === 0)
+	{
+		// TODO consider the case where A has keys and B does not.
+		// Perhaps it makes sense to remove keyed nodes as you see them,
+		// knowing that they will not match with anything on the other
+		// side. This may give you cleaner diffs on the remaining nodes.
+		// May be worthwhile to break this case out, even if it is quite
+		// rare in practice.
+
+		var index = rootIndex;
+
+		if (aLen > bLen)
+		{
+			patches.push({
+				index: rootIndex,
+				type: 'p-remove',
+				data: bLen - aLen,
+				domNode: null
+			});
+		}
+		else if (aLen < bLen)
+		{
+			patches.push({
+				index: rootIndex,
+				type: 'p-insert',
+				data: bChildren.slice(aLen),
+				domNode: null
+			});
+		}
+
+		var i = 0;
+		var minLen = aLen > bLen ? aLen : bLen;
+		for (; i < minLen; i++)
+		{
+			index++;
+			var aChild = aChildren[i];
+			diffHelp(aChild, bChildren[i], patches, index);
+			index += aChild.descendantsCount || 0;
+		}
+	}
+
+	if (aNumKeys === aLen && bNumKeys == bLen)
+	{
+
+	}
+}
+
+
+
+////////////  ADD DOM NODES  ////////////
+//
+// Each DOM node has an "index" assigned in order of traversal. It is important
+// to minimize our crawl over the actual DOM, so these indexes (along with the
+// descendantsCount of virtual nodes) let us skip touching entire subtrees of
+// the DOM if we know there are no patches there.
+
+
+function addDomNodes(domNode, vNode, patches, eventNode)
+{
+	addDomNodesHelp(domNode, vNode, patches, 0, 0, vNode.descendantsCount, eventNode);
+}
+
+
+// assumes `patches` is non-empty and indexes increase monotonically.
+function addDomNodesHelp(domNode, vNode, patches, i, low, high, eventNode)
+{
+	var patch = patches[i];
+	var index = patch.index;
+
+	while (index === low)
+	{
+		if (patch.type === 'p-thunk')
+		{
+			addDomNodes(domNode, vNode.node, patch.data, eventNode);
+		}
+		else
+		{
+			// TODO add eventNode to certain patches
+			patch.domNode = domNode;
+		}
+
 		i++;
-		index = indexes[i];
 
-		if (index > high)
+		if (!(patch = patches[i]) || (index = patch.index) > high)
 		{
-			return indexToDomNodeDict;
+			return i;
 		}
 	}
 
-	var vChildren = vNode.children;
-	if (!vChildren)
+	switch (vNode.type)
 	{
-		return indexToDomNodeDict;
-	}
+		case 'tagger':
+			return addDomNodesHelp(domNode, vNode.node, patches, i, low + 1, high, domNode.elm_event_node_ref);
 
-	var childNodes = domNode.childNodes;
-	for (var j = 0; j < vChildren.length; j++)
-	{
-		low++;
-		var vChild = vChildren[j];
-		var nextLow = low + (vChild.descendantsCount || 0);
-		if (low <= index && index <= nextLow)
-		{
-			getDomNodeDictHelp(childNodes[j], vChild, indexes, i, low, nextLow, indexToDomNodeDict);
-			while ((index = indexes[i]) <= nextLow)
+		case 'node':
+			var vChildren = vNode.children;
+			var childNodes = domNode.childNodes;
+			for (var j = 0; j < vChildren.length; j++)
 			{
-				i++;
+				low++;
+				var vChild = vChildren[j];
+				var nextLow = low + (vChild.descendantsCount || 0);
+				if (low <= index && index <= nextLow)
+				{
+					i = addDomNodesHelp(childNodes[j], vChild, patches, i, low, nextLow, eventNode);
+					if (!(patch = patches[i]) || (index = patch.index) > high)
+					{
+						return i;
+					}
+				}
+				low = nextLow;
 			}
-		}
-		low = nextLow;
+			return i;
+
+		case 'text':
+		case 'thunk':
+			throw new Error('should never traverse `text` or `thunk` nodes like this');
 	}
-	return indexToDomNodeDict;
 }
 
 
 
-// APPLY A PATCH
+////////////  APPLY PATCHES  ////////////
+
+
+function applyPatches(rootDomNode, oldVirtualNode, patches, eventNode)
+{
+	console.log(patches);
+
+	if (patches.length === 0)
+	{
+		return rootDomNode;
+	}
+
+	addDomNodes(rootDomNode, oldVirtualNode, patches, eventNode);
+
+	for (var i = 0; i < patches.length; i++)
+	{
+		var patch = patches[i];
+		var localDomNode = patch.domNode
+		var newNode = applyPatch(localDomNode, patch);
+		if (localDomNode === rootDomNode)
+		{
+			rootDomNode = newNode;
+		}
+	}
+	return rootDomNode;
+}
 
 
 function applyPatch(domNode, patch)
 {
 	switch (patch.type)
 	{
-		case 'patch-remove':
-			return removeNode(domNode);
+		case 'p-redraw':
+			return redraw(domNode, patch.data);
 
-		case 'patch-insert':
-			return insertNode(domNode, patch.node);
-
-		case 'patch-vtext':
-			domNode.replaceData(0, domNode.length, patch.text);
+		case 'p-facts':
+			applyFacts(domNode, patch.data);
 			return domNode;
 
-		case 'patch-vnode':
-			return renderAndReplace(domNode, vNode, patch);
-
-		case 'patch-tagger':
-			domNode.elm_event_ref.tagger = patch.tagger;
+		case 'p-text':
+			domNode.replaceData(0, domNode.length, patch.data);
 			return domNode;
 
-		case 'patch-order':
-			reorderChildren(domNode, patch);
+		case 'p-tagger':
+			domNode.elm_event_node_ref.tagger = patch.data;
 			return domNode;
 
-		case 'patch-facts':
-			patch.applyFacts(domNode, patch.facts, patch.previousFacts);
+		case 'p-remove':
+			// TODO
+			return domNode;
+
+		case 'p-insert':
+			// TODO
 			return domNode;
 
 		default:
-			return domNode;
+			throw new Error('Ran into an unknown patch!');
 	}
 }
 
@@ -739,7 +929,7 @@ function insertNode(parentNode, vNode)
 }
 
 
-function renderAndReplace(domNode, leftVNode, vNode)
+function redraw(domNode, vNode)
 {
 	var parentNode = domNode.parentNode;
 	var newNode = render(vNode, null);
@@ -748,6 +938,17 @@ function renderAndReplace(domNode, leftVNode, vNode)
 		parentNode.replaceChild(newNode, domNode);
 	}
 	return newNode;
+}
+
+
+function applyFacts(domNode, facts)
+{
+	var vNode = facts.oldVirtualNode;
+	applyStyles(domNode, facts.styles);
+	applyEvents(domNode, facts.events, eventNode);
+	applyProps(domNode, facts.props, vNode.properties);
+	applyAttrs(domNode, facts.attrs);
+	applyAttrsNS(domNode, facts.attrsNs, vNode.attributesNS);
 }
 
 
@@ -778,210 +979,6 @@ function reorderChildren(domNode, moves)
 		node = keyMap[insert.key];
 		// this is the weirdest bug i've ever seen in webkit
 		domNode.insertBefore(node, insert.to >= length++ ? null : childNodes[insert.to]);
-	}
-}
-
-
-
-////////////  DIFF  ////////////
-
-
-function diff(a, b)
-{
-	var patchDict = {};
-	diffHelp(a, b, patchDict, 0);
-	return patchDict;
-}
-
-
-function diffHelp(a, b, patchDict, index)
-{
-	if (a === b)
-	{
-		return;
-	}
-
-	switch (b.type)
-	{
-		case 'thunk':
-			if (a.type !== 'thunk')
-			{
-				addPatch(patchDict, index, virtualPatch('patch-vnode', a, b));
-				return;
-			}
-			var aArgs = a.args;
-			var bArgs = b.args;
-			var i = aArgs.length;
-			var same = a.func === b.func && i === bArgs.length;
-			while (same && i--)
-			{
-				same = aArgs[i] === bArgs[i];
-			}
-			if (same)
-			{
-				return;
-			}
-			b.node = b.thunk();
-			diffHelp(a.node, b.node, patchDict, index);
-			return;
-
-		case 'tagger':
-			if (a.type !== 'tagger')
-			{
-				addPatch(patchDict, index, virtualPatch('patch-vnode', a, b));
-				return;
-			}
-
-			if (a.tagger !== b.tagger)
-			{
-				addPatch(patchDict, index, patchTagger(b.tagger));
-			}
-
-			diffHelp(a.node, b.node, patchDict, index);
-			return;
-
-		case 'text':
-			if (a.type !== 'text')
-			{
-				addPatch(patchDict, index, virtualPatch('patch-vnode', a, b));
-				return;
-			}
-
-			if (a.text !== b.text)
-			{
-				addPatch(patchDict, index, patchText(b.text));
-				return;
-			}
-
-			return;
-
-		case 'node':
-			if (a.type === 'node' && a.tag === b.tag && a.namespace === b.namespace && a.key === b.key)
-			{
-				diffFacts(patchDict, index, applyStyles, a.styles, b.styles);
-				diffFacts(patchDict, index, applyProps, a.properties, b.properties);
-				diffFacts(patchDict, index, applyAttrs, a.attributes, b.attributes);
-				diffFacts(patchDict, index, applyAttrsNS, a.attributesNS, b.attributesNS);
-
-				diffChildren(a, b, patchDict, index);
-				return;
-			}
-
-			addPatch(patchDict, index, virtualPatch('patch-vnode', a, b));
-			return;
-	}
-}
-
-
-function addPatch(patchDict, index, patch)
-{
-	var patches = patchDict[index];
-	if (typeof patches === 'undefined')
-	{
-		patchDict[index] = patch;
-	}
-	else if (patches instanceof Array)
-	{
-		patches.push(patch);
-	}
-	else
-	{
-		patchDict[index] = [patches, patch];
-	}
-}
-
-
-// TODO Instead of creating a new diff object, it's possible to just test if
-// there *is* a diff. During the actual patch, do the diff again and make the
-// modifications directly. This way, there's no new allocations. Worth it?
-function diffFacts(patchDict, index, applyFacts, a, b)
-{
-	var diff;
-	for (var aKey in a)
-	{
-		if (!(aKey in b))
-		{
-			diff = diff || {};
-			diff[aKey] = undefined;
-			continue;
-		}
-
-		var aValue = a[aKey];
-		var bValue = b[aKey];
-
-		if (aValue === bValue)
-		{
-			continue;
-		}
-
-		diff = diff || {};
-		diff[aKey] = bValue;
-	}
-
-	for (var bKey in b)
-	{
-		if (!(bKey in a))
-		{
-			diff = diff || {};
-			diff[bKey] = b[bKey];
-		}
-	}
-
-	if (!diff)
-	{
-		return;
-	}
-
-	addPatch(patchDict, index, patchFacts(applyFacts, diff, a));
-}
-
-
-function diffChildren(aParent, bParent, patchDict, rootIndex)
-{
-	var aChildren = aParent.children;
-	var bChildren = bParent.children;
-
-	var aLen = aChildren.length;
-	var bLen = bChildren.length;
-
-	var aNumKeys = aParent.numKeys;
-	var bNumKeys = aParent.numKeys;
-
-	if (aNumKeys === 0 || bNumKeys === 0)
-	{
-		// TODO consider the case where A has keys and B does not.
-		// Perhaps it makes sense to remove keyed nodes as you see them,
-		// knowing that they will not match with anything on the other
-		// side. This may give you cleaner diffs on the remaining nodes.
-		// May be worthwhile to break this case out, even if it is quite
-		// rare in practice.
-
-		var index = rootIndex;
-
-		var i = 0;
-		var minLen = aLen > bLen ? aLen : bLen;
-		for (; i < minLen; i++)
-		{
-			index++;
-			var aChild = aChildren[i];
-			diffHelp(aChild, bChildren[i], patchDict, index);
-			index += aChild.descendantsCount || 0;
-		}
-		for (; i < aLen; i++)
-		{
-			index++;
-			addPatch(patchDict, index, patchRemove);
-			index += aChildren[i].descendantsCount || 0;
-		}
-		for (; i < bLen; i++)
-		{
-			addPatch(patchDict, rootIndex, patchInsert(bChildren[i]));
-		}
-	}
-
-	if (aNumKeys === aLen && bNumKeys == bLen)
-	{
-
 	}
 }
 
