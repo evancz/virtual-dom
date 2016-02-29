@@ -458,29 +458,6 @@ function applyAttrsNS(domNode, nsAttrs, previousNsAttrs)
 
 
 
-////////////  PATCHES  ////////////
-
-
-function patchFacts(type)
-{
-	return function(diff, prev)
-	{
-		return {
-			type: type,
-			diff: diff,
-			prev: prev
-		};
-	};
-}
-
-var patchStyles = patchFacts('p-styles');
-var patchEvents = patchFacts('p-events');
-var patchProps = patchFacts('p-props');
-var patchAttrs = patchFacts('p-attrs');
-var patchAttrsNS = patchFacts('p-attrs-ns');
-
-
-
 ////////////  DIFF  ////////////
 
 
@@ -894,38 +871,24 @@ function applyPatch(domNode, patch)
 			return domNode;
 
 		case 'p-remove':
-			// TODO
+			var i = patch.data;
+			while (i--)
+			{
+				domNode.removeChild(domNode.lastChild);
+			}
 			return domNode;
 
 		case 'p-insert':
-			// TODO
+			var newNodes = patch.data;
+			for (var i = 0; i < newNodes.length; i++)
+			{
+				parentNode.appendChild(render(newNodes[i], /*TODO*/ eventNode));
+			}
 			return domNode;
 
 		default:
 			throw new Error('Ran into an unknown patch!');
 	}
-}
-
-
-function removeNode(domNode)
-{
-	var parentNode = domNode.parentNode;
-	if (parentNode)
-	{
-		parentNode.removeChild(domNode);
-	}
-	return null;
-}
-
-
-function insertNode(parentNode, vNode)
-{
-	var newNode = render(vNode, null);
-	if (parentNode)
-	{
-		parentNode.appendChild(newNode);
-	}
-	return parentNode;
 }
 
 
