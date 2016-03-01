@@ -940,11 +940,10 @@ function redraw(domNode, vNode, eventNode)
 ////////////  PROGRAMS  ////////////
 
 
-function program(details)
+function programWithFlags(details)
 {
-	var init = details.init;
 	return {
-		init: typeof init === 'function' ? init : function() { return init; },
+		init: details.init,
 		update: details.update,
 		subscriptions: details.subscriptions,
 		view: details.view,
@@ -976,8 +975,8 @@ return {
 	lazy2: F3(lazy2),
 	lazy3: F4(lazy3),
 
-	program: program,
-	render: staticProgram
+	programWithFlags: programWithFlags,
+	staticProgram: staticProgram
 };
 
 }();
