@@ -2,9 +2,10 @@
 
 var _evancz$virtual_dom$Native_VirtualDom = function() {
 
+var STYLE_KEY = 'STYLE';
 var EVENT_KEY = 'EVENT';
-var ATTRIBUTE_KEY = 'ATTR';
-var ATTRIBUTE_NS_KEY = 'ATTR_NS';
+var ATTR_KEY = 'ATTR';
+var ATTR_NS_KEY = 'ATTR_NS';
 
 
 
@@ -22,8 +23,8 @@ function text(string)
 
 function node(tag)
 {
-	return F2(function(propertyList, contents) {
-		return nodeHelp(tag, propertyList, contents);
+	return F2(function(factList, kidList) {
+		return nodeHelp(tag, factList, kidList);
 	});
 }
 
@@ -31,45 +32,6 @@ function node(tag)
 function nodeHelp(tag, factList, kidList)
 {
 	var virtualKey, namespace;
-	var style, events, properties, attributes, attributesNS;
-
-	while (factList.ctor !== '[]')
-	{
-		var entry = factList._0;
-		var key = entry.key;
-
-		switch (key)
-		{
-			case ATTRIBUTE_KEY:
-				attributes = attributes || {};
-				attributes[entry.realKey] = entry.value;
-				break;
-
-			case ATTRIBUTE_NS_KEY:
-				attributesNS = attributesNS || {};
-				attributesNS[entry.realKey] = entry.value;
-				break;
-
-			case EVENT_KEY:
-				events = events || {};
-				events['on' + entry.realKey] = entry.value;
-				break;
-
-			case 'style':
-				style = entry.value;
-				break;
-
-			case 'namespace':
-				namespace = entry.value;
-				break;
-
-			default:
-				properties = properties || {};
-				properties[key] = entry.value;
-				break;
-		}
-		factList = factList._1;
-	}
 
 	var children = [];
 	var descendantsCount = 0;
@@ -85,16 +47,53 @@ function nodeHelp(tag, factList, kidList)
 	return {
 		type: 'node',
 		tag: tag,
-		style: style,
-		events: events,
-		properties: properties,
-		attributes: attributes,
-		attributesNS: attributesNS,
+		facts: gatherFacts(factList),
 		children: children,
 		namespace: namespace,
 		descendantsCount: descendantsCount
 	};
+}
 
+
+function gatherFacts(factList)
+{
+	var facts = {};
+
+	while (factList.ctor !== '[]')
+	{
+		var entry = factList._0;
+		var key = entry.key;
+
+		if (key === ATTR_KEY || key === ATTR_NS_KEY || key === EVENT_KEY)
+		{
+			var subFacts = facts[key] || {};
+			subFacts[entry.realKey] = entry.value;
+			facts[key] = subFacts;
+		}
+		else if (key === STYLE_KEY)
+		{
+			var styles = facts[key] || {};
+			var styleList = entry.value;
+			while (styleList.ctor !== '[]')
+			{
+				var style = styleList._0;
+				styles[style._0] = style._1;
+				styleList = styleList._1;
+			}
+			facts[key] = styles;
+		}
+		else if (key === 'namespace')
+		{
+			namespace = entry.value;
+		}
+		else
+		{
+			facts[key] = entry.value;
+		}
+		factList = factList._1;
+	}
+
+	return facts;
 }
 
 
@@ -146,6 +145,15 @@ function lazy3(fn, a, b, c)
 ////////////  PROPERTIES AND ATTRIBUTES  ////////////
 
 
+function style(value)
+{
+	return {
+		key: STYLE_KEY,
+		value: value
+	};
+}
+
+
 function property(key, value)
 {
 	return {
@@ -158,7 +166,7 @@ function property(key, value)
 function attribute(key, value)
 {
 	return {
-		key: ATTRIBUTE_KEY,
+		key: ATTR_KEY,
 		realKey: key,
 		value: value
 	};
@@ -168,7 +176,7 @@ function attribute(key, value)
 function attributeNS(namespace, key, value)
 {
 	return {
-		key: ATTRIBUTE_NS_KEY,
+		key: ATTR_NS_KEY,
 		realKey: key,
 		value: {
 			value: value,
@@ -297,11 +305,7 @@ function render(vnode, eventNode)
 				? document.createElementNS(vnode.namespace, vnode.tag)
 				: document.createElement(vnode.tag);
 
-			applyStyles(node, vnode.styles);
-			applyEvents(node, vnode.events, eventNode);
-			applyProps(node, vnode.properties);
-			applyAttrs(node, vnode.attributes);
-			applyAttrsNS(node, vnode.attributesNS);
+			applyFacts(node, eventNode, vnode.facts);
 
 			var children = vnode.children;
 
@@ -316,35 +320,68 @@ function render(vnode, eventNode)
 
 
 
-// Applying STYLES, EVENTS, PROPERTIES, ATTRIBUTES, and ATTRIBUTES_NS
+////////////  APPLY FACTS  ////////////
 
 
-function applyStyles(domNode, styles)
+function applyFacts(domNode, eventNode, facts)
 {
-	for (var key in styles)
+	for (var key in facts)
 	{
-		var value = styles[key];
-		domNode.style[key] = typeof value === 'undefined' ? '' : value;
+		var value = facts[key];
+
+		switch (key)
+		{
+			case STYLE_KEY:
+				applyStyles(domNode, value);
+				break;
+
+			case EVENT_KEY:
+				applyEvents(domNode, eventNode, value);
+				break;
+
+			case ATTR_KEY:
+				applyAttrs(domNode, value);
+				break;
+
+			case ATTR_NS_KEY:
+				applyAttrsNS(domNode, value);
+				break;
+
+			default:
+				domNode[key] = value;
+				break;
+		}
 	}
 }
 
+function applyStyles(domNode, styles)
+{
+	var domNodeStyle = domNode.style;
 
-function applyEvents(domNode, events, eventNode)
+	for (var key in styles)
+	{
+		domNodeStyle[key] = styles[key];
+	}
+}
+
+function applyEvents(domNode, eventNode, events)
 {
 	for (var key in events)
 	{
+		var onKey = 'on' + key;
 		var value = events[key];
+
 		if (typeof value === 'undefined')
 		{
-			domNode[key] = null;
+			domNode[onKey] = null;
 		}
-		else if (domNode[key])
+		else if (domNode[onKey])
 		{
-			domNode[key].info = value;
+			domNode[onKey].info = value;
 		}
 		else
 		{
-			domNode[key] = makeEventHandler(eventNode, value);
+			domNode[onKey] = makeEventHandler(eventNode, value);
 		}
 	}
 }
@@ -396,20 +433,6 @@ function makeEventHandler(eventNode, info)
 	return eventHandler;
 }
 
-
-function applyProps(domNode, props, previousProps)
-{
-	for (var key in props)
-	{
-		var value = props[key];
-		domNode[key] =
-			typeof value === 'undefined'
-				? (typeof previousProps[key] === 'string' ? '' : null)
-				: value;
-	}
-}
-
-
 function applyAttrs(domNode, attrs)
 {
 	for (var key in attrs)
@@ -426,19 +449,21 @@ function applyAttrs(domNode, attrs)
 	}
 }
 
-
-function applyAttrsNS(domNode, nsAttrs, previousNsAttrs)
+function applyAttrsNS(domNode, nsAttrs)
 {
 	for (var key in nsAttrs)
 	{
-		var value = nsAttrs[key];
+		var pair = nsAttrs[key];
+		var namespace = pair.namespace;
+		var value = pair.value;
+
 		if (typeof value === 'undefined')
 		{
-			domNode.removeAttributeNS(previousNsAttrs[key].namespace, key);
+			domNode.removeAttributeNS(namespace, key);
 		}
 		else
 		{
-			domNode.setAttributeNS(value.namespace, key, value.value);
+			domNode.setAttributeNS(namespace, key, value);
 		}
 	}
 }
@@ -474,7 +499,8 @@ function diffHelp(a, b, patches, index)
 			index: index,
 			type: 'p-redraw',
 			data: b,
-			domNode: null
+			domNode: null,
+			eventNode: null
 		});
 		return;
 	}
@@ -503,7 +529,8 @@ function diffHelp(a, b, patches, index)
 				index: index,
 				type: 'p-thunk',
 				data: subPatches,
-				domNode: null
+				domNode: null,
+				eventNode: null
 			});
 			return;
 
@@ -545,7 +572,8 @@ function diffHelp(a, b, patches, index)
 					index: index,
 					type: 'p-redraw',
 					data: b,
-					domNode: null
+					domNode: null,
+					eventNode: null
 				});
 				return;
 			}
@@ -557,7 +585,8 @@ function diffHelp(a, b, patches, index)
 					 index: index,
 					 type: 'p-tagger',
 					 data: bTaggers,
-					 domNode: null
+					 domNode: null,
+					 eventNode: null
 				});
 			}
 
@@ -572,7 +601,8 @@ function diffHelp(a, b, patches, index)
 					index: index,
 					type: 'p-text',
 					data: b.text,
-					domNode: null
+					domNode: null,
+					eventNode: null
 				});
 				return;
 			}
@@ -588,31 +618,22 @@ function diffHelp(a, b, patches, index)
 					index: index,
 					type: 'p-redraw',
 					data: b,
-					domNode: null
+					domNode: null,
+					eventNode: null
 				});
 				return;
 			}
 
-			var stylesDiff = diffFacts(a.styles, b.styles);
-			var eventsDiff = diffFacts(a.events, b.events, equalEvents);
-			var propsDiff = diffFacts(a.properties, b.properties);
-			var attrsDiff = diffFacts(a.attributes, b.attributes);
-			var attrsNsDiff = diffFacts(a.attributesNS, b.attributesNS);
+			var factsDiff = diffFacts(a.facts, b.facts);
 
-			if (stylesDiff || eventsDiff || propsDiff || attrsDiff || attrsNsDiff)
+			if (typeof factsDiff !== 'undefined')
 			{
 				patches.push({
 					index: index,
 					type: 'p-facts',
-					data: {
-						oldVirtualNode: a,
-						styles: stylesDiff,
-						events: eventsDiff,
-						props: propsDiff,
-						attrs: attrsDiff,
-						attrsNs: attrsNsDiff
-					},
-					domNode: null
+					data: factsDiff,
+					domNode: null,
+					eventNode: null
 				});
 			}
 
@@ -640,36 +661,74 @@ function pairwiseRefEqual(as, bs)
 // TODO Instead of creating a new diff object, it's possible to just test if
 // there *is* a diff. During the actual patch, do the diff again and make the
 // modifications directly. This way, there's no new allocations. Worth it?
-function diffFacts(a, b, specialEq)
+function diffFacts(a, b, category)
 {
 	var diff;
-	for (var aKey in a)
-	{
-		if (!(aKey in b))
-		{
-			diff = diff || {};
-			diff[aKey] = undefined;
-			continue;
-		}
 
-		var aValue = a[aKey];
-		var bValue = b[aKey];
-
-		if (aValue === bValue || (specialEq && specialEq(aValue, bValue)))
-		{
-			continue;
-		}
-
-		diff = diff || {};
-		diff[aKey] = bValue;
-	}
-
+	// add new stuff
 	for (var bKey in b)
 	{
 		if (!(bKey in a))
 		{
 			diff = diff || {};
 			diff[bKey] = b[bKey];
+		}
+	}
+
+	// look for changes and removals
+	for (var aKey in a)
+	{
+		// remove if not in the new facts
+		if (!(aKey in b))
+		{
+			diff = diff || {};
+
+			diff[aKey] =
+				(typeof category === 'undefined')
+					? (typeof a[aKey] === 'string' ? '' : null)
+					:
+				(category === STYLE_KEY)
+					? ''
+					:
+				(category === EVENT_KEY)
+					? null
+					:
+				(category === ATTR_KEY)
+					? undefined
+					:
+				{ namespace: a[aKey].namespace, value: undefined };
+
+			continue;
+		}
+
+		var aValue = a[aKey];
+		var bValue = b[aKey];
+
+		// reference equal, so don't worry about it
+		if (aValue === bValue || (category === EVENT_KEY && equalEvents(aValue, bValue)))
+		{
+			continue;
+		}
+
+		// something must have changed
+		switch (aKey)
+		{
+			case STYLE_KEY:
+			case EVENT_KEY:
+			case ATTR_KEY:
+			case ATTR_NS_KEY:
+				var subDiff = diffFacts(aValue, bValue, aKey);
+				if (subDiff)
+				{
+					diff = diff || {};
+					diff[aKey] = subDiff;
+				}
+				break;
+
+			default:
+				diff = diff || {};
+				diff[aKey] = bValue;
+				break;
 		}
 	}
 
@@ -693,7 +752,8 @@ function diffChildren(aParent, bParent, patches, rootIndex)
 			index: rootIndex,
 			type: 'p-remove',
 			data: bLen - aLen,
-			domNode: null
+			domNode: null,
+			eventNode: null
 		});
 	}
 	else if (aLen < bLen)
@@ -702,7 +762,8 @@ function diffChildren(aParent, bParent, patches, rootIndex)
 			index: rootIndex,
 			type: 'p-insert',
 			data: bChildren.slice(aLen),
-			domNode: null
+			domNode: null,
+			eventNode: null
 		});
 	}
 
@@ -743,14 +804,16 @@ function addDomNodesHelp(domNode, vNode, patches, i, low, high, eventNode)
 
 	while (index === low)
 	{
-		if (patch.type === 'p-thunk')
+		var patchType = patch.type;
+
+		if (patchType === 'p-thunk')
 		{
 			addDomNodes(domNode, vNode.node, patch.data, eventNode);
 		}
 		else
 		{
-			// TODO add eventNode to certain patches
 			patch.domNode = domNode;
+			patch.eventNode = eventNode;
 		}
 
 		i++;
@@ -825,10 +888,10 @@ function applyPatch(domNode, patch)
 	switch (patch.type)
 	{
 		case 'p-redraw':
-			return redraw(domNode, patch.data);
+			return redraw(domNode, patch.data, patch.eventNode);
 
 		case 'p-facts':
-			applyFacts(domNode, patch.data);
+			applyFacts(domNode, patch.eventNode, patch.data);
 			return domNode;
 
 		case 'p-text':
@@ -851,7 +914,7 @@ function applyPatch(domNode, patch)
 			var newNodes = patch.data;
 			for (var i = 0; i < newNodes.length; i++)
 			{
-				parentNode.appendChild(render(newNodes[i], /*TODO*/ eventNode));
+				parentNode.appendChild(render(newNodes[i], patch.eventNode));
 			}
 			return domNode;
 
@@ -861,26 +924,15 @@ function applyPatch(domNode, patch)
 }
 
 
-function redraw(domNode, vNode)
+function redraw(domNode, vNode, eventNode)
 {
 	var parentNode = domNode.parentNode;
-	var newNode = render(vNode, null);
+	var newNode = render(vNode, eventNode);
 	if (parentNode && newNode !== domNode)
 	{
 		parentNode.replaceChild(newNode, domNode);
 	}
 	return newNode;
-}
-
-
-function applyFacts(domNode, facts)
-{
-	var vNode = facts.oldVirtualNode;
-	applyStyles(domNode, facts.styles);
-	applyEvents(domNode, facts.events, eventNode);
-	applyProps(domNode, facts.props, vNode.properties);
-	applyAttrs(domNode, facts.attrs);
-	applyAttrsNS(domNode, facts.attrsNs, vNode.attributesNS);
 }
 
 
@@ -915,6 +967,7 @@ return {
 	map: F2(map),
 
 	on: F3(on),
+	style: style,
 	property: F2(property),
 	attribute: F2(attribute),
 	attributeNS: F3(attributeNS),
