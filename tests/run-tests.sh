@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 
 mkdir -p build/virtual-dom/Native
 cp ../src/VirtualDom.elm build/virtual-dom/
-$(npm bin)/browserify ../src/wrapper.js -o build/VirtualDom.browser.js
+$(npm bin)/browserify -g [ uglifyify --ignore '**/wrapper.js' ] ../src/wrapper.js -o build/VirtualDom.browser.js
 
 set +e
 diff -u ../src/Native/VirtualDom.js build/VirtualDom.browser.js

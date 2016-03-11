@@ -1,11 +1,12 @@
 {
-    "name": "",
-    "version": "",
-    "description": "",
-    "dependencies": {
-        "virtual-dom": "2.1.1"
-    },
-    "devDependencies": {
-        "browserify": "11.1.0"
-    }
+  "name": "",
+  "version": "",
+  "description": "",
+  "dependencies": {
+    "virtual-dom": "2.1.1"
+  },
+  "devDependencies": {
+    "browserify": "11.1.0",
+    "uglifyify": "^3.0.1"
+  }
 }
