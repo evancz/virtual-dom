@@ -7,4 +7,4 @@ if [ ! -d node_modules/browserify ] || [ ! -d node_modules/virtual-dom ]; then
 	exit
 fi
 
-$(npm bin)/browserify src/wrapper.js -o src/Native/VirtualDom.js
+$(npm bin)/browserify -g [ uglifyify --ignore '**/wrapper.js' ] src/wrapper.js -o src/Native/VirtualDom.js
