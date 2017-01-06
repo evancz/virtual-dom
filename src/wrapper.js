@@ -65,14 +65,25 @@ Elm.Native.VirtualDom.make = function(elm)
 		}
 
 		// ensure that setting text of an input does not move the cursor
-		var useSoftSet =
+		var useSoftSetForInputValue =
 			(name === 'input' || name === 'textarea')
 			&& props.value !== undefined
 			&& !isHook(props.value);
 
-		if (useSoftSet)
+		if (useSoftSetForInputValue)
 		{
 			props.value = SoftSetHook(props.value);
+		}
+ 
+		// ensure that setting innerHTML of a contenteditable node does not move the cursor
+		var useSoftSetForContentEditableInnerHTML =
+			props.contentEditable
+			&& props.innerHTML !== undefined
+			&& !isHook(props.innerHTML);
+
+		if (useSoftSetForContentEditableInnerHTML)
+		{
+			props.innerHTML = SoftSetHook(props.innerHTML);
 		}
 
 		return new VNode(name, props, List.toArray(contents), key, namespace);
