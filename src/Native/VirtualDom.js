@@ -100,7 +100,13 @@ function patchObject(node, props, previous, propName, propValue) {
             if (attrValue === undefined) {
                 node.removeAttribute(attrName)
             } else {
-                node.setAttribute(attrName, attrValue)
+                if (attrName.substring(0, 6) == "xlink:") {
+                    node.setAttributeNS( "http://www.w3.org/1999/xlink", attrName.substring(6), attrValue);
+                } else if (attrName.substring(0, 4) == "xml:") {
+                    el.setAttributeNS(xmlns, attrName.substring(4), attrValue);
+                } else {
+                    node.setAttribute(attrName, attrValue)
+                }
             }
         }
 
